@@ -16,13 +16,13 @@ import java.util.Map;
 public class FilmController {
 
     private final Map<Long, Film> films = new HashMap<>();
-    private long currentId = 1; //Полагаю, что это неправильно
+    private long currentId = 0;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Film addFilm(@Valid @RequestBody Film film) {
         log.info("Получен запрос на добавление фильма: {}", film.getName());
-        film.setId(currentId++);
+        film.setId(++currentId);
         films.put(film.getId(), film);
         log.info("Фильм успешно добавлен с id: {}", film.getId());
         return film;

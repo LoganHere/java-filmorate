@@ -15,6 +15,7 @@ public class Film {
     private String description;
 
     @NotNull(message = "Дата релиза не может быть пустой")
+    @PastOrPresent(message = "Дата не может быть в будущем") //А вдруг анонс?))
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")

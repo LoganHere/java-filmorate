@@ -16,13 +16,13 @@ import java.util.Map;
 public class UserController {
 
     private final Map<Long, User> users = new HashMap<>();
-    private long currentId = 1; //Полагаю, что это неправильно
+    private long currentId = 0;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public User createUser(@Valid @RequestBody User user) {
         log.info("Получен запрос на создание пользователя с логином: {}", user.getLogin());
-        user.setId(currentId++);
+        user.setId(++currentId);
         users.put(user.getId(), user);
         log.info("Пользователь успешно создан с id: {}", user.getId());
         return user;
