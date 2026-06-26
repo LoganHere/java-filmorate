@@ -1,0 +1,12 @@
+logging:
+  level:
+    org:
+      zalando:
+        logbook: TRACE
+    ru:
+      yandex:
+        practicum:
+          filmorate: DEBUG
+          filmorate.controller: DEBUG
+          filmorate.service: DEBUG
+          filmorate.storage: DEBUG
