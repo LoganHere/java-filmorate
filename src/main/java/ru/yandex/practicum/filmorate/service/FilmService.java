@@ -49,9 +49,14 @@ public class FilmService {
         log.debug("Начало операции удаления лайка: фильм={}, пользователь={}", filmId, userId);
         Film film = getFilmById(filmId);
 
+        if (!userStorage.containsUser(userId)) {
+            log.warn("Пользователь с id {} не найден", userId);
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+
         if (!film.isLikedBy(userId)) {
             log.warn("Пользователь {} не ставил лайк фильму {}", userId, filmId);
-            throw new ValidationException("Пользователь не ставил лайк этому фильму");
+            throw new NotFoundException("Пользователь не ставил лайк этому фильму");
         }
 
         film.removeLike(userId);

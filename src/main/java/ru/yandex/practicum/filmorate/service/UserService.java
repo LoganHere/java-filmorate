@@ -51,7 +51,7 @@ public class UserService {
 
         if (!user.isFriend(friendId)) {
             log.warn("Пользователь {} не является другом {}", userId, friendId);
-            throw new ValidationException("Пользователи не являются друзьями");
+            throw new NotFoundException("Пользователи не являются друзьями");
         }
 
         user.removeFriend(friendId);
