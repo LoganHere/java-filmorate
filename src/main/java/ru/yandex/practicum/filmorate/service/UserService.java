@@ -22,6 +22,39 @@ public class UserService {
         this.userStorage = userStorage;
     }
 
+    public List<User> getAllUsers() {
+        return userStorage.getAllUsers();
+    }
+
+    public User getUserById(Long id) {
+        log.debug("Поиск пользователя с id: {}", id);
+        return userStorage.getUserById(id)
+                .orElseThrow(() -> {
+                    log.warn("Пользователь с id {} не найден", id);
+                    return new NotFoundException("Пользователь с id " + id + " не найден");
+                });
+    }
+
+    public User createUser(User user) {
+        return userStorage.addUser(user);
+    }
+
+    public User updateUser(User user) {
+        if (!userStorage.containsUser(user.getId())) {
+            log.warn("Попытка обновить несуществующего пользователя с id: {}", user.getId());
+            throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
+        }
+        return userStorage.updateUser(user);
+    }
+
+    public void deleteUser(Long id) {
+        if (!userStorage.containsUser(id)) {
+            log.warn("Попытка удалить несуществующего пользователя с id: {}", id);
+            throw new NotFoundException("Пользователь с id " + id + " не найден");
+        }
+        userStorage.deleteUser(id);
+    }
+
     public User addFriend(Long userId, Long friendId) {
         log.debug("Начало операции добавления в друзья: пользователь={}, друг={}", userId, friendId);
         User user = getUserById(userId);
@@ -47,13 +80,14 @@ public class UserService {
     public User removeFriend(Long userId, Long friendId) {
         log.debug("Начало операции удаления из друзей: пользователь={}, друг={}", userId, friendId);
         User user = getUserById(userId);
-        User friend = getUserById(friendId);
+        getUserById(friendId);
 
         if (!user.isFriend(friendId)) {
             log.warn("Пользователь {} не является другом {}. Возвращаем успех без изменений", userId, friendId);
             return user;
         }
 
+        User friend = getUserById(friendId);
         user.removeFriend(friendId);
         friend.removeFriend(userId);
 
@@ -98,14 +132,5 @@ public class UserService {
         log.info("Найдено {} общих друзей у пользователей {} и {}",
                 commonFriends.size(), userId, otherUserId);
         return commonFriends;
-    }
-
-    private User getUserById(Long id) {
-        log.debug("Поиск пользователя с id: {}", id);
-        return userStorage.getUserById(id)
-                .orElseThrow(() -> {
-                    log.warn("Пользователь с id {} не найден", id);
-                    return new NotFoundException("Пользователь с id " + id + " не найден");
-                });
     }
 }

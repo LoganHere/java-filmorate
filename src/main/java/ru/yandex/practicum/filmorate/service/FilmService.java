@@ -25,6 +25,39 @@ public class FilmService {
         this.userStorage = userStorage;
     }
 
+    public List<Film> getAllFilms() {
+        return filmStorage.getAllFilms();
+    }
+
+    public Film getFilmById(Long id) {
+        log.debug("Поиск фильма с id: {}", id);
+        return filmStorage.getFilmById(id)
+                .orElseThrow(() -> {
+                    log.warn("Фильм с id {} не найден", id);
+                    return new NotFoundException("Фильм с id " + id + " не найден");
+                });
+    }
+
+    public Film addFilm(Film film) {
+        return filmStorage.addFilm(film);
+    }
+
+    public Film updateFilm(Film film) {
+        if (!filmStorage.containsFilm(film.getId())) {
+            log.warn("Попытка обновить несуществующий фильм с id: {}", film.getId());
+            throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
+        }
+        return filmStorage.updateFilm(film);
+    }
+
+    public void deleteFilm(Long id) {
+        if (!filmStorage.containsFilm(id)) {
+            log.warn("Попытка удалить несуществующий фильм с id: {}", id);
+            throw new NotFoundException("Фильм с id " + id + " не найден");
+        }
+        filmStorage.deleteFilm(id);
+    }
+
     public Film addLike(Long filmId, Long userId) {
         log.debug("Начало операции добавления лайка: фильм={}, пользователь={}", filmId, userId);
         Film film = getFilmById(filmId);
@@ -66,30 +99,11 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int count) {
-        log.debug("Запрос на получение {} популярных фильмов", count);
-        List<Film> allFilms = filmStorage.getAllFilms();
-        log.debug("Всего фильмов в хранилище: {}", allFilms.size());
-
-        List<Film> popularFilms = allFilms.stream()
-                .sorted(Comparator.comparingInt(Film::getLikesCount).reversed())
-                .limit(count)
-                .collect(Collectors.toList());
-
-        log.debug("Возвращено {} популярных фильмов", popularFilms.size());
-        if (!popularFilms.isEmpty()) {
-            Film topFilm = popularFilms.get(0);
-            log.debug("Самый популярный фильм: '{}' с {} лайками",
-                    topFilm.getName(), topFilm.getLikesCount());
+        if (count <= 0) {
+            log.warn("Запрошено невалидное количество фильмов: {}", count);
+            throw new ValidationException("Количество фильмов должно быть больше 0");
         }
-        return popularFilms;
-    }
-
-    private Film getFilmById(Long id) {
-        log.debug("Поиск фильма с id: {}", id);
-        return filmStorage.getFilmById(id)
-                .orElseThrow(() -> {
-                    log.warn("Фильм с id {} не найден", id);
-                    return new NotFoundException("Фильм с id " + id + " не найден");
-                });
+        log.debug("Запрос на получение {} популярных фильмов", count);
+        return filmStorage.getPopularFilms(count);
     }
 }

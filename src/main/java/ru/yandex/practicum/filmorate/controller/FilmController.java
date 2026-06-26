@@ -7,8 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
 import java.util.List;
 
@@ -16,33 +14,23 @@ import java.util.List;
 @RestController
 @RequestMapping("/films")
 public class FilmController {
-    private final FilmStorage filmStorage;
     private final FilmService filmService;
 
     @Autowired
-    public FilmController(FilmStorage filmStorage, FilmService filmService) {
-        this.filmStorage = filmStorage;
+    public FilmController(FilmService filmService) {
         this.filmService = filmService;
     }
 
     @GetMapping
     public List<Film> getAllFilms() {
         log.debug("Запрос на получение всех фильмов");
-        List<Film> films = filmStorage.getAllFilms();
-        log.debug("Возвращено {} фильмов", films.size());
-        return films;
+        return filmService.getAllFilms();
     }
 
     @GetMapping("/{id}")
     public Film getFilmById(@PathVariable Long id) {
         log.info("Запрос на получение фильма с id: {}", id);
-        Film film = filmStorage.getFilmById(id)
-                .orElseThrow(() -> {
-                    log.warn("Фильм с id {} не найден", id);
-                    return new NotFoundException("Фильм с id " + id + " не найден");
-                });
-        log.debug("Фильм с id {} успешно получен: {}", id, film.getName());
-        return film;
+        return filmService.getFilmById(id);
     }
 
     @PostMapping
@@ -51,7 +39,7 @@ public class FilmController {
         log.info("Запрос на добавление фильма: {}", film.getName());
         log.debug("Детали фильма: описание='{}', длительность={}, дата релиза={}",
                 film.getDescription(), film.getDuration(), film.getReleaseDate());
-        Film addedFilm = filmStorage.addFilm(film);
+        Film addedFilm = filmService.addFilm(film);
         log.info("Фильм успешно добавлен с id: {}", addedFilm.getId());
         return addedFilm;
     }
@@ -59,13 +47,9 @@ public class FilmController {
     @PutMapping
     public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Запрос на обновление фильма с id: {}", film.getId());
-        if (!filmStorage.containsFilm(film.getId())) {
-            log.warn("Попытка обновить несуществующий фильм с id: {}", film.getId());
-            throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
-        }
         log.debug("Обновление фильма: новое имя='{}', описание='{}'",
                 film.getName(), film.getDescription());
-        Film updatedFilm = filmStorage.updateFilm(film);
+        Film updatedFilm = filmService.updateFilm(film);
         log.info("Фильм с id {} успешно обновлен", film.getId());
         return updatedFilm;
     }
@@ -74,11 +58,7 @@ public class FilmController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteFilm(@PathVariable Long id) {
         log.info("Запрос на удаление фильма с id: {}", id);
-        if (!filmStorage.containsFilm(id)) {
-            log.warn("Попытка удалить несуществующий фильм с id: {}", id);
-            throw new NotFoundException("Фильм с id " + id + " не найден");
-        }
-        filmStorage.deleteFilm(id);
+        filmService.deleteFilm(id);
         log.info("Фильм с id {} успешно удален", id);
     }
 

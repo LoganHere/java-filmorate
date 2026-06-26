@@ -7,8 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
 import java.util.List;
 
@@ -16,33 +14,23 @@ import java.util.List;
 @RestController
 @RequestMapping("/users")
 public class UserController {
-    private final UserStorage userStorage;
     private final UserService userService;
 
     @Autowired
-    public UserController(UserStorage userStorage, UserService userService) {
-        this.userStorage = userStorage;
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
     @GetMapping
     public List<User> getAllUsers() {
         log.debug("Запрос на получение всех пользователей");
-        List<User> users = userStorage.getAllUsers();
-        log.debug("Возвращено {} пользователей", users.size());
-        return users;
+        return userService.getAllUsers();
     }
 
     @GetMapping("/{id}")
     public User getUserById(@PathVariable Long id) {
         log.info("Запрос на получение пользователя с id: {}", id);
-        User user = userStorage.getUserById(id)
-                .orElseThrow(() -> {
-                    log.warn("Пользователь с id {} не найден", id);
-                    return new NotFoundException("Пользователь с id " + id + " не найден");
-                });
-        log.debug("Пользователь с id {} успешно получен: {}", id, user.getLogin());
-        return user;
+        return userService.getUserById(id);
     }
 
     @PostMapping
@@ -51,7 +39,7 @@ public class UserController {
         log.info("Запрос на создание пользователя с логином: {}", user.getLogin());
         log.debug("Детали пользователя: email={}, имя={}, дата рождения={}",
                 user.getEmail(), user.getName(), user.getBirthday());
-        User createdUser = userStorage.addUser(user);
+        User createdUser = userService.createUser(user);
         log.info("Пользователь успешно создан с id: {}", createdUser.getId());
         return createdUser;
     }
@@ -59,13 +47,9 @@ public class UserController {
     @PutMapping
     public User updateUser(@Valid @RequestBody User user) {
         log.info("Запрос на обновление пользователя с id: {}", user.getId());
-        if (!userStorage.containsUser(user.getId())) {
-            log.warn("Попытка обновить несуществующего пользователя с id: {}", user.getId());
-            throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
-        }
         log.debug("Обновление пользователя: новый логин='{}', email='{}'",
                 user.getLogin(), user.getEmail());
-        User updatedUser = userStorage.updateUser(user);
+        User updatedUser = userService.updateUser(user);
         log.info("Пользователь с id {} успешно обновлен", user.getId());
         return updatedUser;
     }
@@ -74,11 +58,7 @@ public class UserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long id) {
         log.info("Запрос на удаление пользователя с id: {}", id);
-        if (!userStorage.containsUser(id)) {
-            log.warn("Попытка удалить несуществующего пользователя с id: {}", id);
-            throw new NotFoundException("Пользователь с id " + id + " не найден");
-        }
-        userStorage.deleteUser(id);
+        userService.deleteUser(id);
         log.info("Пользователь с id {} успешно удален", id);
     }
 
