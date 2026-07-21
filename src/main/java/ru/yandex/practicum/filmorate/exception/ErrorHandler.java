@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -40,6 +41,23 @@ public class ErrorHandler {
     public Map<String, String> handleNotFoundException(NotFoundException e) {
         log.warn("Объект не найден: {}", e.getMessage());
         return Map.of("error", e.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("Ошибка чтения JSON: {}", e.getMessage());
+        Throwable cause = e.getCause();
+        if (cause != null && cause.getMessage() != null) {
+            String message = cause.getMessage();
+            if (message.contains("Unknown MPA id")) {
+                return Map.of("error", message);
+            }
+            if (message.contains("Unknown genre id")) {
+                return Map.of("error", message);
+            }
+        }
+        return Map.of("error", "Неверный формат данных");
     }
 
     @ExceptionHandler(RuntimeException.class)
