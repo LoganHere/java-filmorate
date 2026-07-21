@@ -7,8 +7,10 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,10 +26,12 @@ class JdbcFilmStorageTest {
     private JdbcTemplate jdbcTemplate;
 
     private JdbcFilmStorage filmStorage;
+    private JdbcUserStorage userStorage;
 
     @BeforeEach
     void setUp() {
         filmStorage = new JdbcFilmStorage(jdbcTemplate, new FilmMapper());
+        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper());
     }
 
     @Test
@@ -99,11 +103,13 @@ class JdbcFilmStorageTest {
 
     @Test
     void getPopularFilms_ShouldReturnSortedByLikes() {
+        User user = createTestUser();
+        User savedUser = userStorage.addUser(user);
+
         Film film1 = filmStorage.addFilm(createTestFilm());
         Film film2 = filmStorage.addFilm(createTestFilm2());
 
-        jdbcTemplate.update("INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)", film1.getId(), 1L);
-        jdbcTemplate.update("INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)", film1.getId(), 2L);
+        jdbcTemplate.update("INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)", film1.getId(), savedUser.getId());
 
         List<Film> popular = filmStorage.getPopularFilms(2);
 
@@ -129,5 +135,14 @@ class JdbcFilmStorageTest {
         film.setDuration(178);
         film.setMpa(Mpa.PG_13);
         return film;
+    }
+
+    private User createTestUser() {
+        User user = new User();
+        user.setEmail("test@mail.ru");
+        user.setLogin("testuser");
+        user.setName("Тест");
+        user.setBirthday(LocalDate.of(2000, 1, 1));
+        return user;
     }
 }
