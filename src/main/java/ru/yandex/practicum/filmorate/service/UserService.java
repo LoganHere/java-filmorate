@@ -5,17 +5,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final Map<String, FriendshipStatus> friendshipStatuses = new HashMap<>();
 
     @Autowired
     public UserService(UserStorage userStorage) {
@@ -52,11 +53,15 @@ public class UserService {
             log.warn("Попытка удалить несуществующего пользователя с id: {}", id);
             throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
+        friendshipStatuses.entrySet().removeIf(entry -> {
+            String[] ids = entry.getKey().split("_");
+            return ids[0].equals(String.valueOf(id)) || ids[1].equals(String.valueOf(id));
+        });
         userStorage.deleteUser(id);
     }
 
     public User addFriend(Long userId, Long friendId) {
-        log.debug("Начало операции добавления в друзья: пользователь={}, друг={}", userId, friendId);
+        log.debug("Запрос на добавление в друзья: пользователь={}, друг={}", userId, friendId);
         User user = getUserById(userId);
         User friend = getUserById(friendId);
 
@@ -65,34 +70,55 @@ public class UserService {
             throw new ValidationException("Нельзя добавить самого себя в друзья");
         }
 
-        if (user.isFriend(friendId)) {
+        String requestKey = userId + "_" + friendId;
+        String reverseKey = friendId + "_" + userId;
+
+        if (friendshipStatuses.getOrDefault(requestKey, null) == FriendshipStatus.CONFIRMED ||
+                friendshipStatuses.getOrDefault(reverseKey, null) == FriendshipStatus.CONFIRMED) {
             log.debug("Пользователи {} и {} уже являются друзьями", userId, friendId);
+            return user;
         }
 
-        user.addFriend(friendId);
-        friend.addFriend(userId);
+        if (friendshipStatuses.containsKey(reverseKey) &&
+                friendshipStatuses.get(reverseKey) == FriendshipStatus.PENDING) {
 
-        log.info("Пользователь {} и {} стали друзьями. У пользователя {} теперь {} друзей, у пользователя {} - {} друзей",
-                userId, friendId, userId, user.getFriends().size(), friendId, friend.getFriends().size());
+            friendshipStatuses.put(reverseKey, FriendshipStatus.CONFIRMED);
+            friendshipStatuses.put(requestKey, FriendshipStatus.CONFIRMED);
+
+            user.addFriend(friendId);
+            friend.addFriend(userId);
+
+            log.info("Пользователь {} принял запрос в друзья от {}. Теперь они друзья!", friendId, userId);
+            return user;
+        }
+
+        friendshipStatuses.put(requestKey, FriendshipStatus.PENDING);
+        log.info("Пользователь {} отправил запрос на дружбу пользователю {}. Статус: {}", userId, friendId, FriendshipStatus.PENDING);
         return user;
     }
 
     public User removeFriend(Long userId, Long friendId) {
-        log.debug("Начало операции удаления из друзей: пользователь={}, друг={}", userId, friendId);
+        log.debug("Запрос на удаление из друзей: пользователь={}, друг={}", userId, friendId);
         User user = getUserById(userId);
-        getUserById(friendId);
+        User friend = getUserById(friendId);
 
-        if (!user.isFriend(friendId)) {
-            log.warn("Пользователь {} не является другом {}. Возвращаем успех без изменений", userId, friendId);
+        String requestKey = userId + "_" + friendId;
+        String reverseKey = friendId + "_" + userId;
+
+        if (!friendshipStatuses.containsKey(requestKey) && !friendshipStatuses.containsKey(reverseKey)) {
+            log.warn("Связи между {} и {} не найдено", userId, friendId);
             return user;
         }
 
-        User friend = getUserById(friendId);
-        user.removeFriend(friendId);
-        friend.removeFriend(userId);
+        friendshipStatuses.remove(requestKey);
+        friendshipStatuses.remove(reverseKey);
 
-        log.info("Пользователь {} и {} перестали быть друзьями. У пользователя {} теперь {} друзей, у пользователя {} - {} друзей",
-                userId, friendId, userId, user.getFriends().size(), friendId, friend.getFriends().size());
+        if (user.isFriend(friendId)) {
+            user.removeFriend(friendId);
+            friend.removeFriend(userId);
+        }
+
+        log.info("Пользователь {} удалил из друзей/отклонил запрос пользователя {}", userId, friendId);
         return user;
     }
 
@@ -100,15 +126,29 @@ public class UserService {
         log.debug("Запрос списка друзей для пользователя {}", userId);
         User user = getUserById(userId);
         Set<Long> friendIds = user.getFriends();
-        log.debug("Пользователь {} имеет {} друзей", userId, friendIds.size());
 
         List<User> friends = new ArrayList<>();
         for (Long friendId : friendIds) {
             userStorage.getUserById(friendId).ifPresent(friends::add);
         }
-
-        log.debug("Возвращено {} друзей для пользователя {}", friends.size(), userId);
         return friends;
+    }
+
+    public List<User> getFriendsByStatus(Long userId, FriendshipStatus status) {
+        log.debug("Запрос друзей со статусом {} для пользователя {}", status, userId);
+        getUserById(userId);
+
+        return friendshipStatuses.entrySet().stream()
+                .filter(entry -> {
+                    String[] ids = entry.getKey().split("_");
+                    return ids[0].equals(String.valueOf(userId)) && entry.getValue() == status;
+                })
+                .map(entry -> {
+                    Long friendId = Long.parseLong(entry.getKey().split("_")[1]);
+                    return userStorage.getUserById(friendId).orElse(null);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(Long userId, Long otherUserId) {
@@ -119,18 +159,12 @@ public class UserService {
         Set<Long> userFriends = user.getFriends();
         Set<Long> otherUserFriends = otherUser.getFriends();
 
-        log.debug("У пользователя {} {} друзей, у пользователя {} {} друзей",
-                userId, userFriends.size(), otherUserId, otherUserFriends.size());
-
         List<User> commonFriends = new ArrayList<>();
         for (Long friendId : userFriends) {
             if (otherUserFriends.contains(friendId)) {
                 userStorage.getUserById(friendId).ifPresent(commonFriends::add);
             }
         }
-
-        log.info("Найдено {} общих друзей у пользователей {} и {}",
-                commonFriends.size(), userId, otherUserId);
         return commonFriends;
     }
 }

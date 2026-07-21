@@ -24,6 +24,9 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private int duration;
 
+    private Set<Genre> genres = new HashSet<>();
+    private Mpa mpa;
+
     private Set<Long> likes = new HashSet<>();
 
     public static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
