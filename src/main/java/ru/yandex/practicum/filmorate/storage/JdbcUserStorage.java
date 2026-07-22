@@ -19,11 +19,13 @@ public class JdbcUserStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
     private final UserMapper userMapper;
+    private final FriendshipStorage friendshipStorage;
 
     @Autowired
-    public JdbcUserStorage(JdbcTemplate jdbcTemplate, UserMapper userMapper) {
+    public JdbcUserStorage(JdbcTemplate jdbcTemplate, UserMapper userMapper, FriendshipStorage friendshipStorage) {
         this.jdbcTemplate = jdbcTemplate;
         this.userMapper = userMapper;
+        this.friendshipStorage = friendshipStorage;
     }
 
     @Override
@@ -68,7 +70,7 @@ public class JdbcUserStorage implements UserStorage {
     public List<User> getAllUsers() {
         String sql = "SELECT * FROM users";
         List<User> users = jdbcTemplate.query(sql, userMapper);
-        users.forEach(this::loadUserFriends);
+        loadUserFriends(users);
         return users;
     }
 
@@ -79,9 +81,8 @@ public class JdbcUserStorage implements UserStorage {
         if (users.isEmpty()) {
             return Optional.empty();
         }
-        User user = users.get(0);
-        loadUserFriends(user);
-        return Optional.of(user);
+        loadUserFriends(users);
+        return Optional.of(users.get(0));
     }
 
     @Override
@@ -98,9 +99,13 @@ public class JdbcUserStorage implements UserStorage {
         return count != null && count > 0;
     }
 
-    private void loadUserFriends(User user) {
-        String sql = "SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'CONFIRMED'";
-        List<Long> friendIds = jdbcTemplate.queryForList(sql, Long.class, user.getId());
-        user.setFriends(new HashSet<>(friendIds));
+    private void loadUserFriends(List<User> users) {
+        if (users.isEmpty()) {
+            return;
+        }
+        for (User user : users) {
+            List<Long> friendIds = friendshipStorage.getFriendIds(user.getId());
+            user.setFriends(new HashSet<>(friendIds));
+        }
     }
 }

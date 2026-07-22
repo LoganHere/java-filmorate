@@ -26,7 +26,8 @@ class JdbcUserStorageTest {
 
     @BeforeEach
     void setUp() {
-        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper());
+        FriendshipStorage friendshipStorage = new JdbcFriendshipStorage(jdbcTemplate);
+        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper(), friendshipStorage);
     }
 
     @Test

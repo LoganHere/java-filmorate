@@ -30,8 +30,13 @@ class JdbcFilmStorageTest {
 
     @BeforeEach
     void setUp() {
-        filmStorage = new JdbcFilmStorage(jdbcTemplate, new FilmMapper());
-        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper());
+        FriendshipStorage friendshipStorage = new JdbcFriendshipStorage(jdbcTemplate);
+        GenreStorage genreStorage = new JdbcGenreStorage(jdbcTemplate);
+        MpaStorage mpaStorage = new JdbcMpaStorage(jdbcTemplate);
+        LikeStorage likeStorage = new JdbcLikeStorage(jdbcTemplate);
+
+        filmStorage = new JdbcFilmStorage(jdbcTemplate, new FilmMapper(), genreStorage, mpaStorage, likeStorage);
+        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper(), friendshipStorage);
     }
 
     @Test
@@ -123,7 +128,7 @@ class JdbcFilmStorageTest {
         film.setDescription("Научно-фантастический фильм");
         film.setReleaseDate(LocalDate.of(1999, 3, 31));
         film.setDuration(136);
-        film.setMpa(Mpa.PG_13);
+        film.setMpa(new Mpa(3, "PG-13"));
         return film;
     }
 
@@ -133,7 +138,7 @@ class JdbcFilmStorageTest {
         film.setDescription("Эпическое фэнтези");
         film.setReleaseDate(LocalDate.of(2001, 12, 19));
         film.setDuration(178);
-        film.setMpa(Mpa.PG_13);
+        film.setMpa(new Mpa(3, "PG-13"));
         return film;
     }
 

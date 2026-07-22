@@ -10,6 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Repository
@@ -35,8 +37,17 @@ public class JdbcGenreStorage implements GenreStorage {
         return genres.isEmpty() ? Optional.empty() : Optional.of(genres.get(0));
     }
 
+    @Override
+    public List<Genre> getGenresByIds(Set<Integer> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(", "));
+        String sql = "SELECT * FROM genres WHERE id IN (" + placeholders + ") ORDER BY id";
+        return jdbcTemplate.query(sql, this::mapRowToGenre, ids.toArray());
+    }
+
     private Genre mapRowToGenre(ResultSet rs, int rowNum) throws SQLException {
-        int id = rs.getInt("id");
-        return Genre.fromId(id);
+        return new Genre(rs.getInt("id"), rs.getString("name"));
     }
 }

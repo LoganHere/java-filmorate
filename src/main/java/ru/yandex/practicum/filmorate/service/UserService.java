@@ -2,27 +2,29 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final JdbcTemplate jdbcTemplate;
+    private final FriendshipStorage friendshipStorage;
 
     @Autowired
-    public UserService(UserStorage userStorage, JdbcTemplate jdbcTemplate) {
+    public UserService(UserStorage userStorage, FriendshipStorage friendshipStorage) {
         this.userStorage = userStorage;
-        this.jdbcTemplate = jdbcTemplate;
+        this.friendshipStorage = friendshipStorage;
     }
 
     public List<User> getAllUsers() {
@@ -55,9 +57,7 @@ public class UserService {
             log.warn("Попытка удалить несуществующего пользователя с id: {}", id);
             throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
-        String deleteFriendshipsSql = "DELETE FROM friendships WHERE user_id = ? OR friend_id = ?";
-        jdbcTemplate.update(deleteFriendshipsSql, id, id);
-
+        friendshipStorage.deleteAllByUserId(id);
         userStorage.deleteUser(id);
     }
 
@@ -72,17 +72,12 @@ public class UserService {
         getUserById(userId);
         getUserById(friendId);
 
-        String checkSql = "SELECT COUNT(*) FROM friendships WHERE user_id = ? AND friend_id = ?";
-        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId, friendId);
-
-        if (count != null && count > 0) {
+        if (friendshipStorage.exists(userId, friendId)) {
             log.debug("Пользователи {} и {} уже являются друзьями", userId, friendId);
             return getUserById(userId);
         }
 
-        String insertSql = "INSERT INTO friendships (user_id, friend_id, status) VALUES (?, ?, ?)";
-        jdbcTemplate.update(insertSql, userId, friendId, FriendshipStatus.CONFIRMED.name());
-
+        friendshipStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
         return getUserById(userId);
     }
@@ -93,9 +88,7 @@ public class UserService {
         getUserById(userId);
         getUserById(friendId);
 
-        String deleteSql = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
-        jdbcTemplate.update(deleteSql, userId, friendId);
-
+        friendshipStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
         return getUserById(userId);
     }
@@ -104,22 +97,24 @@ public class UserService {
         log.debug("Запрос списка друзей для пользователя {}", userId);
         getUserById(userId);
 
-        String sql = "SELECT u.* FROM users u " +
-                "JOIN friendships f ON u.id = f.friend_id " +
-                "WHERE f.user_id = ?";
-
-        return jdbcTemplate.query(sql, new UserMapper(), userId);
+        List<Long> friendIds = friendshipStorage.getFriendIds(userId);
+        List<User> friends = new ArrayList<>();
+        for (Long friendId : friendIds) {
+            userStorage.getUserById(friendId).ifPresent(friends::add);
+        }
+        return friends;
     }
 
     public List<User> getFriendsByStatus(Long userId, FriendshipStatus status) {
         log.debug("Запрос друзей со статусом {} для пользователя {}", status, userId);
         getUserById(userId);
 
-        String sql = "SELECT u.* FROM users u " +
-                "JOIN friendships f ON u.id = f.friend_id " +
-                "WHERE f.user_id = ? AND f.status = ?";
-
-        return jdbcTemplate.query(sql, new UserMapper(), userId, status.name());
+        List<Long> friendIds = friendshipStorage.getFriendIdsByStatus(userId, status);
+        List<User> friends = new ArrayList<>();
+        for (Long friendId : friendIds) {
+            userStorage.getUserById(friendId).ifPresent(friends::add);
+        }
+        return friends;
     }
 
     public List<User> getCommonFriends(Long userId, Long otherUserId) {
@@ -127,11 +122,15 @@ public class UserService {
         getUserById(userId);
         getUserById(otherUserId);
 
-        String sql = "SELECT u.* FROM users u " +
-                "JOIN friendships f1 ON u.id = f1.friend_id " +
-                "JOIN friendships f2 ON u.id = f2.friend_id " +
-                "WHERE f1.user_id = ? AND f2.user_id = ?";
+        Set<Long> userFriends = friendshipStorage.getFriendIds(userId).stream().collect(Collectors.toSet());
+        Set<Long> otherUserFriends = friendshipStorage.getFriendIds(otherUserId).stream().collect(Collectors.toSet());
 
-        return jdbcTemplate.query(sql, new UserMapper(), userId, otherUserId);
+        List<User> commonFriends = new ArrayList<>();
+        for (Long friendId : userFriends) {
+            if (otherUserFriends.contains(friendId)) {
+                userStorage.getUserById(friendId).ifPresent(commonFriends::add);
+            }
+        }
+        return commonFriends;
     }
 }

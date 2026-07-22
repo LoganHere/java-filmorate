@@ -6,6 +6,7 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 @Data
 public class Film {
@@ -24,7 +25,7 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private int duration;
 
-    private Set<Genre> genres = new HashSet<>();
+    private Set<Genre> genres = new TreeSet<>((g1, g2) -> Integer.compare(g1.getId(), g2.getId()));
     private Mpa mpa;
 
     private Set<Long> likes = new HashSet<>();
