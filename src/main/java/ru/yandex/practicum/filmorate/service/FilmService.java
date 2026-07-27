@@ -6,21 +6,32 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.LikeStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
+    private final LikeStorage likeStorage;
+    private final GenreService genreService;
+    private final MpaService mpaService;
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage, LikeStorage likeStorage,
+                       GenreService genreService, MpaService mpaService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.likeStorage = likeStorage;
+        this.genreService = genreService;
+        this.mpaService = mpaService;
     }
 
     public List<Film> getAllFilms() {
@@ -37,6 +48,7 @@ public class FilmService {
     }
 
     public Film addFilm(Film film) {
+        validateFilm(film);
         return filmStorage.addFilm(film);
     }
 
@@ -45,6 +57,7 @@ public class FilmService {
             log.warn("Попытка обновить несуществующий фильм с id: {}", film.getId());
             throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
         }
+        validateFilm(film);
         return filmStorage.updateFilm(film);
     }
 
@@ -65,12 +78,14 @@ public class FilmService {
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
 
-        if (film.isLikedBy(userId)) {
+        if (likeStorage.exists(filmId, userId)) {
             log.warn("Пользователь {} уже ставил лайк фильму {}", userId, filmId);
             throw new ValidationException("Пользователь уже поставил лайк этому фильму");
         }
 
+        likeStorage.addLike(filmId, userId);
         film.addLike(userId);
+
         log.info("Пользователь {} поставил лайк фильму {}. Всего лайков: {}",
                 userId, filmId, film.getLikesCount());
         return film;
@@ -85,12 +100,14 @@ public class FilmService {
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
 
-        if (!film.isLikedBy(userId)) {
+        if (!likeStorage.exists(filmId, userId)) {
             log.warn("Пользователь {} не ставил лайк фильму {}", userId, filmId);
             throw new NotFoundException("Пользователь не ставил лайк этому фильму");
         }
 
+        likeStorage.removeLike(filmId, userId);
         film.removeLike(userId);
+
         log.info("Пользователь {} убрал лайк с фильма {}. Осталось лайков: {}",
                 userId, filmId, film.getLikesCount());
         return film;
@@ -103,5 +120,17 @@ public class FilmService {
         }
         log.debug("Запрос на получение {} популярных фильмов", count);
         return filmStorage.getPopularFilms(count);
+    }
+
+    private void validateFilm(Film film) {
+        if (film.getMpa() != null) {
+            mpaService.validateMpaExists(film.getMpa().getId());
+        }
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            Set<Integer> genreIds = film.getGenres().stream()
+                    .map(Genre::getId)
+                    .collect(Collectors.toSet());
+            genreService.validateGenresExist(genreIds);
+        }
     }
 }

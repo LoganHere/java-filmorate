@@ -14,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/films")
 public class FilmController {
+
     private final FilmService filmService;
 
     @Autowired
@@ -29,7 +30,7 @@ public class FilmController {
 
     @GetMapping("/{id}")
     public Film getFilmById(@PathVariable Long id) {
-        log.info("Запрос на получение фильма с id: {}", id);
+        log.debug("Запрос на получение фильма с id: {}", id);
         return filmService.getFilmById(id);
     }
 
@@ -37,21 +38,13 @@ public class FilmController {
     @ResponseStatus(HttpStatus.CREATED)
     public Film addFilm(@Valid @RequestBody Film film) {
         log.info("Запрос на добавление фильма: {}", film.getName());
-        log.debug("Детали фильма: описание='{}', длительность={}, дата релиза={}",
-                film.getDescription(), film.getDuration(), film.getReleaseDate());
-        Film addedFilm = filmService.addFilm(film);
-        log.info("Фильм успешно добавлен с id: {}", addedFilm.getId());
-        return addedFilm;
+        return filmService.addFilm(film);
     }
 
     @PutMapping
     public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Запрос на обновление фильма с id: {}", film.getId());
-        log.debug("Обновление фильма: новое имя='{}', описание='{}'",
-                film.getName(), film.getDescription());
-        Film updatedFilm = filmService.updateFilm(film);
-        log.info("Фильм с id {} успешно обновлен", film.getId());
-        return updatedFilm;
+        return filmService.updateFilm(film);
     }
 
     @DeleteMapping("/{id}")
@@ -59,32 +52,23 @@ public class FilmController {
     public void deleteFilm(@PathVariable Long id) {
         log.info("Запрос на удаление фильма с id: {}", id);
         filmService.deleteFilm(id);
-        log.info("Фильм с id {} успешно удален", id);
     }
 
     @PutMapping("/{id}/like/{userId}")
     public Film addLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Запрос на добавление лайка фильму {} от пользователя {}", id, userId);
-        Film film = filmService.addLike(id, userId);
-        log.info("Лайк успешно добавлен. Текущее количество лайков у фильма {}: {}",
-                id, film.getLikesCount());
-        return film;
+        log.info("Запрос на добавление лайка: фильм={}, пользователь={}", id, userId);
+        return filmService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     public Film removeLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Запрос на удаление лайка у фильма {} от пользователя {}", id, userId);
-        Film film = filmService.removeLike(id, userId);
-        log.info("Лайк успешно удален. Текущее количество лайков у фильма {}: {}",
-                id, film.getLikesCount());
-        return film;
+        log.info("Запрос на удаление лайка: фильм={}, пользователь={}", id, userId);
+        return filmService.removeLike(id, userId);
     }
 
     @GetMapping("/popular")
     public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
-        log.info("Запрос на получение {} популярных фильмов", count);
-        List<Film> popularFilms = filmService.getPopularFilms(count);
-        log.debug("Возвращено {} популярных фильмов", popularFilms.size());
-        return popularFilms;
+        log.debug("Запрос на получение {} популярных фильмов", count);
+        return filmService.getPopularFilms(count);
     }
 }

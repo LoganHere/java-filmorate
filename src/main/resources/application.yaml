@@ -10,3 +10,17 @@ logging:
           filmorate.controller: DEBUG
           filmorate.service: DEBUG
           filmorate.storage: DEBUG
+
+spring:
+  sql:
+    init:
+      mode: always
+  datasource:
+    url: jdbc:h2:file:./db/filmorate
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
