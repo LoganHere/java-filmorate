@@ -7,8 +7,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +18,10 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final FriendshipStorage friendshipStorage;
 
     @Autowired
-    public UserService(UserStorage userStorage, FriendshipStorage friendshipStorage) {
+    public UserService(UserStorage userStorage) {
         this.userStorage = userStorage;
-        this.friendshipStorage = friendshipStorage;
     }
 
     public List<User> getAllUsers() {
@@ -57,7 +54,7 @@ public class UserService {
             log.warn("Попытка удалить несуществующего пользователя с id: {}", id);
             throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
-        friendshipStorage.deleteAllByUserId(id);
+        userStorage.deleteAllFriendsByUserId(id);
         userStorage.deleteUser(id);
     }
 
@@ -72,12 +69,12 @@ public class UserService {
         getUserById(userId);
         getUserById(friendId);
 
-        if (friendshipStorage.exists(userId, friendId)) {
+        if (userStorage.existsFriend(userId, friendId)) {
             log.debug("Пользователи {} и {} уже являются друзьями", userId, friendId);
             return getUserById(userId);
         }
 
-        friendshipStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
+        userStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
         return getUserById(userId);
     }
@@ -88,7 +85,7 @@ public class UserService {
         getUserById(userId);
         getUserById(friendId);
 
-        friendshipStorage.removeFriend(userId, friendId);
+        userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
         return getUserById(userId);
     }
@@ -97,7 +94,7 @@ public class UserService {
         log.debug("Запрос списка друзей для пользователя {}", userId);
         getUserById(userId);
 
-        List<Long> friendIds = friendshipStorage.getFriendIds(userId);
+        List<Long> friendIds = userStorage.getFriendIds(userId);
         List<User> friends = new ArrayList<>();
         for (Long friendId : friendIds) {
             userStorage.getUserById(friendId).ifPresent(friends::add);
@@ -109,7 +106,7 @@ public class UserService {
         log.debug("Запрос друзей со статусом {} для пользователя {}", status, userId);
         getUserById(userId);
 
-        List<Long> friendIds = friendshipStorage.getFriendIdsByStatus(userId, status);
+        List<Long> friendIds = userStorage.getFriendIdsByStatus(userId, status);
         List<User> friends = new ArrayList<>();
         for (Long friendId : friendIds) {
             userStorage.getUserById(friendId).ifPresent(friends::add);
@@ -122,8 +119,8 @@ public class UserService {
         getUserById(userId);
         getUserById(otherUserId);
 
-        Set<Long> userFriends = friendshipStorage.getFriendIds(userId).stream().collect(Collectors.toSet());
-        Set<Long> otherUserFriends = friendshipStorage.getFriendIds(otherUserId).stream().collect(Collectors.toSet());
+        Set<Long> userFriends = userStorage.getFriendIds(userId).stream().collect(Collectors.toSet());
+        Set<Long> otherUserFriends = userStorage.getFriendIds(otherUserId).stream().collect(Collectors.toSet());
 
         List<User> commonFriends = new ArrayList<>();
         for (Long friendId : userFriends) {

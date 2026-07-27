@@ -1,8 +1,9 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.dal;
 
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface FilmStorage {
@@ -19,4 +20,12 @@ public interface FilmStorage {
     boolean containsFilm(Long id);
 
     List<Film> getPopularFilms(int count);
+
+    void addLike(Long filmId, Long userId);
+
+    void removeLike(Long filmId, Long userId);
+
+    boolean existsLike(Long filmId, Long userId);
+
+    Map<Long, List<Long>> getLikesForFilms(List<Long> filmIds);
 }

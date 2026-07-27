@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.dal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,7 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.dal.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -25,16 +25,14 @@ public class JdbcFilmStorage implements FilmStorage {
     private final FilmMapper filmMapper;
     private final GenreStorage genreStorage;
     private final MpaStorage mpaStorage;
-    private final LikeStorage likeStorage;
 
     @Autowired
     public JdbcFilmStorage(JdbcTemplate jdbcTemplate, FilmMapper filmMapper,
-                           GenreStorage genreStorage, MpaStorage mpaStorage, LikeStorage likeStorage) {
+                           GenreStorage genreStorage, MpaStorage mpaStorage) {
         this.jdbcTemplate = jdbcTemplate;
         this.filmMapper = filmMapper;
         this.genreStorage = genreStorage;
         this.mpaStorage = mpaStorage;
-        this.likeStorage = likeStorage;
     }
 
     @Override
@@ -134,6 +132,43 @@ public class JdbcFilmStorage implements FilmStorage {
         return films;
     }
 
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        String sql = "INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)";
+        jdbcTemplate.update(sql, filmId, userId);
+        log.debug("Пользователь {} поставил лайк фильму {}", userId, filmId);
+    }
+
+    @Override
+    public void removeLike(Long filmId, Long userId) {
+        String sql = "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?";
+        jdbcTemplate.update(sql, filmId, userId);
+        log.debug("Пользователь {} убрал лайк с фильма {}", userId, filmId);
+    }
+
+    @Override
+    public boolean existsLike(Long filmId, Long userId) {
+        String sql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, filmId, userId);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public Map<Long, List<Long>> getLikesForFilms(List<Long> filmIds) {
+        if (filmIds == null || filmIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = filmIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+        String sql = "SELECT film_id, user_id FROM film_likes WHERE film_id IN (" + placeholders + ")";
+        Map<Long, List<Long>> likesMap = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            Long filmId = rs.getLong("film_id");
+            Long userId = rs.getLong("user_id");
+            likesMap.computeIfAbsent(filmId, k -> new ArrayList<>()).add(userId);
+        }, filmIds.toArray());
+        return likesMap;
+    }
+
     private void loadFilmDetails(List<Film> films) {
         if (films.isEmpty()) {
             return;
@@ -142,7 +177,7 @@ public class JdbcFilmStorage implements FilmStorage {
         List<Long> filmIds = films.stream().map(Film::getId).collect(Collectors.toList());
 
         Map<Long, List<Genre>> genresMap = loadGenresForFilms(filmIds);
-        Map<Long, List<Long>> likesMap = likeStorage.getLikesForFilms(filmIds);
+        Map<Long, List<Long>> likesMap = getLikesForFilms(filmIds);
         Map<Long, Mpa> mpaMap = loadMpaForFilms(filmIds);
 
         for (Film film : films) {

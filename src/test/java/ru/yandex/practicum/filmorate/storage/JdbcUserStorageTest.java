@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
-import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.dal.JdbcUserStorage;
+import ru.yandex.practicum.filmorate.dal.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -26,8 +27,7 @@ class JdbcUserStorageTest {
 
     @BeforeEach
     void setUp() {
-        FriendshipStorage friendshipStorage = new JdbcFriendshipStorage(jdbcTemplate);
-        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper(), friendshipStorage);
+        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper());
     }
 
     @Test
@@ -103,6 +103,67 @@ class JdbcUserStorageTest {
         boolean exists = userStorage.containsUser(999L);
 
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    void addFriend_ShouldAddFriend() {
+        User user1 = userStorage.addUser(createTestUser());
+        User user2 = userStorage.addUser(createTestUser2());
+
+        userStorage.addFriend(user1.getId(), user2.getId(), ru.yandex.practicum.filmorate.model.FriendshipStatus.CONFIRMED);
+
+        List<Long> friends = userStorage.getFriendIds(user1.getId());
+
+        assertThat(friends).hasSize(1);
+        assertThat(friends.get(0)).isEqualTo(user2.getId());
+    }
+
+    @Test
+    void removeFriend_ShouldRemoveFriend() {
+        User user1 = userStorage.addUser(createTestUser());
+        User user2 = userStorage.addUser(createTestUser2());
+
+        userStorage.addFriend(user1.getId(), user2.getId(), ru.yandex.practicum.filmorate.model.FriendshipStatus.CONFIRMED);
+        userStorage.removeFriend(user1.getId(), user2.getId());
+
+        List<Long> friends = userStorage.getFriendIds(user1.getId());
+
+        assertThat(friends).isEmpty();
+    }
+
+    @Test
+    void existsFriend_ShouldReturnTrueIfExists() {
+        User user1 = userStorage.addUser(createTestUser());
+        User user2 = userStorage.addUser(createTestUser2());
+
+        userStorage.addFriend(user1.getId(), user2.getId(), ru.yandex.practicum.filmorate.model.FriendshipStatus.CONFIRMED);
+
+        boolean exists = userStorage.existsFriend(user1.getId(), user2.getId());
+
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    void existsFriend_ShouldReturnFalseIfNotExists() {
+        User user1 = userStorage.addUser(createTestUser());
+        User user2 = userStorage.addUser(createTestUser2());
+
+        boolean exists = userStorage.existsFriend(user1.getId(), user2.getId());
+
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void deleteAllFriendsByUserId_ShouldDeleteAllFriends() {
+        User user1 = userStorage.addUser(createTestUser());
+        User user2 = userStorage.addUser(createTestUser2());
+
+        userStorage.addFriend(user1.getId(), user2.getId(), ru.yandex.practicum.filmorate.model.FriendshipStatus.CONFIRMED);
+        userStorage.deleteAllFriendsByUserId(user1.getId());
+
+        List<Long> friends = userStorage.getFriendIds(user1.getId());
+
+        assertThat(friends).isEmpty();
     }
 
     private User createTestUser() {

@@ -6,8 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
-import ru.yandex.practicum.filmorate.mapper.FilmMapper;
-import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.dal.*;
+import ru.yandex.practicum.filmorate.dal.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.dal.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
@@ -30,13 +31,11 @@ class JdbcFilmStorageTest {
 
     @BeforeEach
     void setUp() {
-        FriendshipStorage friendshipStorage = new JdbcFriendshipStorage(jdbcTemplate);
         GenreStorage genreStorage = new JdbcGenreStorage(jdbcTemplate);
         MpaStorage mpaStorage = new JdbcMpaStorage(jdbcTemplate);
-        LikeStorage likeStorage = new JdbcLikeStorage(jdbcTemplate);
 
-        filmStorage = new JdbcFilmStorage(jdbcTemplate, new FilmMapper(), genreStorage, mpaStorage, likeStorage);
-        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper(), friendshipStorage);
+        filmStorage = new JdbcFilmStorage(jdbcTemplate, new FilmMapper(), genreStorage, mpaStorage);
+        userStorage = new JdbcUserStorage(jdbcTemplate, new UserMapper());
     }
 
     @Test
@@ -114,7 +113,7 @@ class JdbcFilmStorageTest {
         Film film1 = filmStorage.addFilm(createTestFilm());
         Film film2 = filmStorage.addFilm(createTestFilm2());
 
-        jdbcTemplate.update("INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)", film1.getId(), savedUser.getId());
+        filmStorage.addLike(film1.getId(), savedUser.getId());
 
         List<Film> popular = filmStorage.getPopularFilms(2);
 
