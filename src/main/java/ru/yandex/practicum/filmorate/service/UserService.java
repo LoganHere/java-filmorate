@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
@@ -24,6 +26,7 @@ public class UserService {
     private final UserStorage userStorage;
     private final EventService eventService;
     private final FilmService filmService;
+    private final EventService eventService;
 
     @Autowired
     public UserService(UserStorage userStorage, FilmService filmService,

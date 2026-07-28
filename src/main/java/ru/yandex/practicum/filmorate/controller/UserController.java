@@ -100,6 +100,14 @@ public class UserController {
         return commonFriends;
     }
 
+    @GetMapping("/{id}/feed")
+    public List<Event> getEventsByUserId(@PathVariable Long id) {
+        log.info("Запрос на получение событий у пользователя {}", id);
+        List<Event> events = eventService.getFeed(id);
+        log.debug("Найдено {} событий у пользователя {}", events.size(), id);
+        return events;
+    }
+
     @GetMapping("/{id}/recommendations")
     public List<Film> getFilmsRecommendations(@PathVariable Long id) {
         log.info("Запрос на получение рекомендации по фильмам для пользователя с ID {}", id);
