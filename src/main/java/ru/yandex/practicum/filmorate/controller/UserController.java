@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -97,6 +98,14 @@ public class UserController {
         log.debug("Найдено {} общих друзей для пользователей {} и {}",
                 commonFriends.size(), id, otherId);
         return commonFriends;
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public List<Film> getFilmsRecommendations(@PathVariable Long id) {
+        log.info("Запрос на получение рекомендации по фильмам для пользователя с ID {}", id);
+        List<Film> recommendedFilms = userService.getFilmsRecommendations(id);
+        log.debug("Найдено {} рекомендованных фильмов для пользователя с ID {}", recommendedFilms.size(), id);
+        return recommendedFilms;
     }
 
     @GetMapping("/{id}/feed")

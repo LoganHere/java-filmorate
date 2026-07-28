@@ -135,6 +135,13 @@ public class FilmService {
         return filmStorage.getPopularFilms(count);
     }
 
+    public List<Film> getLikedFilmsByUser(Long userId) {
+        log.debug("Начало операции получения списка понравившихся фильмов для пользователя с ID {}", userId);
+        List<Film> likedFilms = filmStorage.getLikedFilmsByUser(userId);
+        log.info("Найден список из {} пролайканных фильмов", likedFilms.size());
+        return likedFilms;
+    }
+
     private void validateFilm(Film film) {
         if (film.getMpa() != null) {
             mpaService.validateMpaExists(film.getMpa().getId());

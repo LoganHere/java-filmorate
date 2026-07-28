@@ -28,4 +28,6 @@ public interface FilmStorage {
     boolean existsLike(Long filmId, Long userId);
 
     Map<Long, List<Long>> getLikesForFilms(List<Long> filmIds);
+
+    List<Film> getLikedFilmsByUser(Long userId);
 }
