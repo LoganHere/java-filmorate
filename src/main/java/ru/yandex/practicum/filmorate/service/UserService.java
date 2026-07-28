@@ -5,8 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 
 import java.util.ArrayList;
@@ -18,10 +17,12 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final EventService eventService;
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(UserStorage userStorage, EventService eventService) {
         this.userStorage = userStorage;
+        this.eventService = eventService;
     }
 
     public List<User> getAllUsers() {
@@ -76,6 +77,14 @@ public class UserService {
 
         userStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
+
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(friendId);
+        event.setEventType(EventType.FRIEND);
+        event.setOperation(Operation.ADD);
+        eventService.addEvent(event);
+
         return getUserById(userId);
     }
 
@@ -87,6 +96,14 @@ public class UserService {
 
         userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
+
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(friendId);
+        event.setEventType(EventType.FRIEND);
+        event.setOperation(Operation.REMOVE);
+        eventService.addEvent(event);
+
         return getUserById(userId);
     }
 
