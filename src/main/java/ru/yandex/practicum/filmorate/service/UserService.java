@@ -3,11 +3,12 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.dal.UserStorage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +19,12 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final FilmService filmService;
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(UserStorage userStorage, FilmService filmService) {
         this.userStorage = userStorage;
+        this.filmService = filmService;
     }
 
     public List<User> getAllUsers() {
@@ -129,5 +132,49 @@ public class UserService {
             }
         }
         return commonFriends;
+    }
+
+    public List<Film> getFilmsRecommendations(Long userId) {
+        log.info("Начинается поиск пользователей для составления рекомендации.");
+        if (!isExistsLikedFilms(userId)) {
+            log.info("Пользователь с ID {} ещё не ставил like ни одному фильму", userId);
+            throw new NotFoundException("Вы ещё не ставили like ни одному фильму. " +
+                    "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
+                    + " фильмов.");
+        }
+
+        List<Long> otherUserIds = userStorage.getUserIdsWithMostLikedFilmsMatches(userId);
+        if (otherUserIds.isEmpty()) {
+            log.info("Не нашлось ни одного пользователя с пересечением по понравившимся фильмам.");
+            throw new NotFoundException("Нет совпадений ни с одним пользователем по вашему вкусу. "
+                    + "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
+                    + " фильмов.");
+        }
+        log.info("ID пользователей для составление рекомендации {}", otherUserIds);
+
+        List<Film> filmsLikedByUser = filmService.getLikedFilmsByUser(userId);
+        List<Film> recommendedFilms = new ArrayList<>();
+
+        for (Long otherUserId : otherUserIds) {
+            List<Film> filmsLikedByOtherUser = filmService.getLikedFilmsByUser(otherUserId);
+            recommendedFilms = filmsLikedByOtherUser.stream()
+                    .filter(film -> !filmsLikedByUser.contains(film))
+                    .collect(Collectors.toList());
+
+            if (!recommendedFilms.isEmpty()) {
+                break;
+            }
+        }
+
+        if (recommendedFilms.isEmpty()) {
+            throw new NotFoundException("Недостаточно данных для рекомендации, советуем вам перейти к подборке из самых"
+                    + " популярных фильмов.");
+        }
+        return recommendedFilms;
+    }
+
+    private boolean isExistsLikedFilms(Long userId) {
+        log.info("Проверка существования записи в таблице film_likes для пользователя с ID {}", userId);
+        return userStorage.isExistsLikedFilms(userId);
     }
 }

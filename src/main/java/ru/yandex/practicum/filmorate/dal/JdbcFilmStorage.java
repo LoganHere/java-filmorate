@@ -169,6 +169,20 @@ public class JdbcFilmStorage implements FilmStorage {
         return likesMap;
     }
 
+    @Override
+    public List<Film> getLikedFilmsByUser(Long userId) {
+        String sql = """
+                SELECT *
+                FROM films
+                WHERE id IN (SELECT film_id
+                FROM film_likes
+                WHERE user_id = ?);
+                """;
+        List<Film> films = jdbcTemplate.query(sql, filmMapper, userId);
+        loadFilmDetails(films);
+        return films;
+    }
+
     private void loadFilmDetails(List<Film> films) {
         if (films.isEmpty()) {
             return;
