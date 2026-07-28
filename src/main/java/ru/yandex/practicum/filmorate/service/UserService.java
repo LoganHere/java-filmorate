@@ -139,9 +139,6 @@ public class UserService {
         log.info("Начинается поиск пользователей для составления рекомендации.");
         if (!isExistsLikedFilms(userId)) {
             log.info("Пользователь с ID {} ещё не ставил like ни одному фильму", userId);
-//            throw new NotFoundException("Вы ещё не ставили like ни одному фильму. " +
-//                    "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
-//                    + " фильмов.");
             return Collections.emptyList();
         }
 
@@ -149,9 +146,6 @@ public class UserService {
         if (otherUserIds.isEmpty()) {
             log.info("Не нашлось ни одного пользователя с пересечением по понравившимся фильмам.");
             return Collections.emptyList();
-//            throw new NotFoundException("Нет совпадений ни с одним пользователем по вашему вкусу. "
-//                    + "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
-//                    + " фильмов.");
         }
         log.info("ID пользователей для составление рекомендации {}", otherUserIds);
 
@@ -168,11 +162,6 @@ public class UserService {
                 break;
             }
         }
-
-//        if (recommendedFilms.isEmpty()) {
-//            throw new NotFoundException("Недостаточно данных для рекомендации, советуем вам перейти к подборке из самых"
-//                    + " популярных фильмов.");
-//        }
         return recommendedFilms;
     }
 
