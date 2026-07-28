@@ -139,9 +139,10 @@ public class UserService {
         log.info("Начинается поиск пользователей для составления рекомендации.");
         if (!isExistsLikedFilms(userId)) {
             log.info("Пользователь с ID {} ещё не ставил like ни одному фильму", userId);
-            throw new NotFoundException("Вы ещё не ставили like ни одному фильму. " +
-                    "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
-                    + " фильмов.");
+//            throw new NotFoundException("Вы ещё не ставили like ни одному фильму. " +
+//                    "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
+//                    + " фильмов.");
+            return Collections.emptyList();
         }
 
         List<Long> otherUserIds = userStorage.getUserIdsWithMostLikedFilmsMatches(userId);
