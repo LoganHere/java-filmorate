@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -17,6 +18,7 @@ import java.sql.Types;
 import java.util.*;
 import java.util.stream.Collectors;
 
+//Комментарии остались на случай, если не будут проходиться тесты postman на github
 @Slf4j
 @Repository("jdbcFilmStorage")
 public class JdbcFilmStorage implements FilmStorage {
@@ -36,8 +38,9 @@ public class JdbcFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Film addFilm(Film film) {
-        String sql = "INSERT INTO films (name, description, release_date, duration, mpa_id) VALUES (?, ?, ?, ?, ?)";
+    public Film addFilm(Film film) { // учесть добавление director
+        String sql = "INSERT INTO films (name, description, release_date, duration, mpa_id) "
+                + "VALUES (?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -52,6 +55,11 @@ public class JdbcFilmStorage implements FilmStorage {
             } else {
                 ps.setNull(5, Types.INTEGER);
             }
+//            if (film.getDirector() != null) {
+//                ps.setInt(6, film.getDirector().getId());
+//            } else {
+//                ps.setNull(6, Types.INTEGER);
+//            }
             return ps;
         }, keyHolder);
 
@@ -59,14 +67,16 @@ public class JdbcFilmStorage implements FilmStorage {
         film.setId(filmId);
 
         updateFilmGenres(filmId, film.getGenres());
+        updateFilmDirectors(filmId, film.getDirector());
 
         log.debug("Добавлен фильм с id: {}", filmId);
         return getFilmById(filmId).orElseThrow();
     }
 
     @Override
-    public Film updateFilm(Film film) {
-        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE id = ?";
+    public Film updateFilm(Film film) { // учесть добавление director
+        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ?" +
+                " WHERE id = ?";
 
         jdbcTemplate.update(sql,
                 film.getName(),
@@ -74,12 +84,17 @@ public class JdbcFilmStorage implements FilmStorage {
                 java.sql.Date.valueOf(film.getReleaseDate()),
                 film.getDuration(),
                 film.getMpa() != null ? film.getMpa().getId() : null,
+//                film.getDirector() != null ? film.getDirector().getId() : null,
                 film.getId()
         );
 
         String deleteGenresSql = "DELETE FROM film_genres WHERE film_id = ?";
         jdbcTemplate.update(deleteGenresSql, film.getId());
         updateFilmGenres(film.getId(), film.getGenres());
+
+        String deleteDirectorsSql = "DELETE FROM film_directors WHERE film_id = ?";
+        jdbcTemplate.update(deleteDirectorsSql, film.getId());
+        updateFilmDirectors(film.getId(), film.getDirector());
 
         log.debug("Обновлен фильм с id: {}", film.getId());
         return getFilmById(film.getId()).orElseThrow();
@@ -183,6 +198,51 @@ public class JdbcFilmStorage implements FilmStorage {
         return films;
     }
 
+    @Override
+    public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
+        String sql = """
+                SELECT
+                    f.ID,
+                    f.NAME,
+                    f.DESCRIPTION,
+                    f.RELEASE_DATE,
+                    f.DURATION,
+                    f.MPA_ID,
+                    d.ID AS director_id,
+                    d.NAME AS director_name
+                FROM FILMS f
+                JOIN FILM_DIRECTORS fd ON fd.FILM_ID = f.ID
+                JOIN DIRECTORS d ON d.ID = fd.DIRECTOR_ID
+                LEFT JOIN (
+                    SELECT FILM_ID, COUNT(*) AS likes_count
+                    FROM FILM_LIKES
+                    GROUP BY FILM_ID
+                ) fl ON f.ID = fl.FILM_ID
+                WHERE d.ID = ?
+                GROUP BY f.ID, f.NAME, f.DESCRIPTION, f.RELEASE_DATE, f.DURATION, f.MPA_ID, d.ID, d.NAME
+                ORDER BY COALESCE(fl.likes_count, 0) DESC;
+                """;
+        List<Film> films = jdbcTemplate.query(sql, filmMapper, directorId);
+        loadFilmDetails(films);
+        return films;
+    }
+
+    @Override
+    public List<Film> getAllDirectorFilmsSortedByYear(int directorId) {
+        String sql = """
+                SELECT f.ID, f.NAME, f.DESCRIPTION, f.RELEASE_DATE, f.duration, f.MPA_ID, d.ID AS director_id,
+                d.NAME AS director_name
+                FROM FILMS f
+                JOIN FILM_DIRECTORS fd ON fd.FILM_ID =f.ID
+                JOIN DIRECTORS d ON d.ID = fd.DIRECTOR_ID
+                WHERE d.ID = ?
+                ORDER BY f.RELEASE_DATE DESC;
+                """;
+        List<Film> films = jdbcTemplate.query(sql, filmMapper, directorId);
+        loadFilmDetails(films);
+        return films;
+    }
+
     private void loadFilmDetails(List<Film> films) {
         if (films.isEmpty()) {
             return;
@@ -193,9 +253,11 @@ public class JdbcFilmStorage implements FilmStorage {
         Map<Long, List<Genre>> genresMap = loadGenresForFilms(filmIds);
         Map<Long, List<Long>> likesMap = getLikesForFilms(filmIds);
         Map<Long, Mpa> mpaMap = loadMpaForFilms(filmIds);
+        Map<Long, List<Director>> directorMap = loadDirectorForFilms(filmIds);
 
         for (Film film : films) {
             film.setGenres(new LinkedHashSet<>(genresMap.getOrDefault(film.getId(), List.of())));
+            film.setDirector(new LinkedHashSet<>(directorMap.getOrDefault(film.getId(), List.of())));
             film.setLikes(new HashSet<>(likesMap.getOrDefault(film.getId(), List.of())));
             if (mpaMap.containsKey(film.getId())) {
                 film.setMpa(mpaMap.get(film.getId()));
@@ -221,6 +283,31 @@ public class JdbcFilmStorage implements FilmStorage {
         }, filmIds.toArray());
 
         return genresMap;
+    }
+
+    private Map<Long, List<Director>> loadDirectorForFilms(List<Long> filmIds) {
+        if (filmIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = filmIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+//        String sql = "SELECT f.id AS film_id, d.id AS director_id, d.name AS director_name " +
+//                "FROM films f " +
+//                "LEFT JOIN directors d ON f.director_id = d.id " +
+//                "WHERE f.id IN (" + placeholders + ")";
+
+        String sql = "SELECT fd.film_id, d.id, d.name FROM film_directors fd " +
+                "JOIN directors d ON fd.director_id = d.id " +
+                "WHERE fd.film_id IN (" + placeholders + ") " +
+                "ORDER BY fd.film_id, d.id";
+
+        Map<Long, List<Director>> directorsMap = new HashMap<>();
+        jdbcTemplate.query(sql, rs -> {
+            Long filmId = rs.getLong("film_id");
+            Director director = new Director(rs.getInt("id"), rs.getString("name"));
+            directorsMap.computeIfAbsent(filmId, k -> new ArrayList<>()).add(director);
+        }, filmIds.toArray());
+
+        return directorsMap;
     }
 
     private Map<Long, Mpa> loadMpaForFilms(List<Long> filmIds) {
@@ -255,6 +342,19 @@ public class JdbcFilmStorage implements FilmStorage {
         List<Object[]> batchArgs = genres.stream()
                 .sorted(Comparator.comparingInt(Genre::getId))
                 .map(genre -> new Object[]{filmId, genre.getId()})
+                .collect(Collectors.toList());
+
+        jdbcTemplate.batchUpdate(sql, batchArgs);
+    }
+
+    private void updateFilmDirectors(long filmId, Set<Director> directors) {
+        if (directors == null || directors.isEmpty()) {
+            return;
+        }
+        String sql = "INSERT INTO film_directors (film_id, director_id) VALUES (?, ?)";
+        List<Object[]> batchArgs = directors.stream()
+                .sorted(Comparator.comparingInt(Director::getId))
+                .map(director -> new Object[]{filmId, director.getId()})
                 .collect(Collectors.toList());
 
         jdbcTemplate.batchUpdate(sql, batchArgs);
