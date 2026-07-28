@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final EventService eventService;
     private final FilmService filmService;
     private final EventService eventService;
 
