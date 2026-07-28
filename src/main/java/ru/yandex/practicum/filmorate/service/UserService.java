@@ -166,10 +166,10 @@ public class UserService {
             }
         }
 
-        if (recommendedFilms.isEmpty()) {
-            throw new NotFoundException("Недостаточно данных для рекомендации, советуем вам перейти к подборке из самых"
-                    + " популярных фильмов.");
-        }
+//        if (recommendedFilms.isEmpty()) {
+//            throw new NotFoundException("Недостаточно данных для рекомендации, советуем вам перейти к подборке из самых"
+//                    + " популярных фильмов.");
+//        }
         return recommendedFilms;
     }
 
