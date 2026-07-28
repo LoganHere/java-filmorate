@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -242,6 +243,25 @@ public class JdbcFilmStorage implements FilmStorage {
         List<Film> films = jdbcTemplate.query(sql, filmMapper, directorId);
         loadFilmDetails(films);
         return films;
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        if (by == null || by.isBlank() || by.equalsIgnoreCase("title")) {
+            return searchByTitle(query);
+        } else {
+            throw new ValidationException("Поиск по режиссёру будет доступен позже. Используйте by=title");
+        }
+    }
+
+    public List<Film> searchByTitle(String query) {
+        String sql = "SELECT f.* FROM films f " +
+                "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
+                "WHERE LOWER(f.name) LIKE LOWER (?) " +
+                "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id " +
+                "ORDER BY COUNT(fl.user_id) DESC";
+        String likePattern = "%" + query.toLowerCase() + "%";
+        return jdbcTemplate.query(sql, filmMapper, likePattern);
     }
 
     private void loadFilmDetails(List<Film> films) {
