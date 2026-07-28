@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -146,9 +147,10 @@ public class UserService {
         List<Long> otherUserIds = userStorage.getUserIdsWithMostLikedFilmsMatches(userId);
         if (otherUserIds.isEmpty()) {
             log.info("Не нашлось ни одного пользователя с пересечением по понравившимся фильмам.");
-            throw new NotFoundException("Нет совпадений ни с одним пользователем по вашему вкусу. "
-                    + "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
-                    + " фильмов.");
+            return Collections.emptyList();
+//            throw new NotFoundException("Нет совпадений ни с одним пользователем по вашему вкусу. "
+//                    + "Невозможно составить рекомендацию, поэтому советуем вам перейти к подборке из самых популярных"
+//                    + " фильмов.");
         }
         log.info("ID пользователей для составление рекомендации {}", otherUserIds);
 
