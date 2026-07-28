@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
@@ -21,11 +23,14 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserStorage userStorage;
     private final FilmService filmService;
+    private final EventService eventService;
 
     @Autowired
-    public UserService(UserStorage userStorage, FilmService filmService) {
+    public UserService(UserStorage userStorage, FilmService filmService,
+                       EventService eventService) {
         this.userStorage = userStorage;
         this.filmService = filmService;
+        this.eventService = eventService;
     }
 
     public List<User> getAllUsers() {
@@ -80,6 +85,14 @@ public class UserService {
 
         userStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
+
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(friendId);
+        event.setEventType(EventType.FRIEND);
+        event.setOperation(Operation.ADD);
+        eventService.addEvent(event);
+
         return getUserById(userId);
     }
 
@@ -91,6 +104,14 @@ public class UserService {
 
         userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
+
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(friendId);
+        event.setEventType(EventType.FRIEND);
+        event.setOperation(Operation.REMOVE);
+        eventService.addEvent(event);
+
         return getUserById(userId);
     }
 
