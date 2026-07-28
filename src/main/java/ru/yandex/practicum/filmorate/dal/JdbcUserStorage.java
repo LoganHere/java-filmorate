@@ -12,7 +12,10 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Repository("jdbcUserStorage")
