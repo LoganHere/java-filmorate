@@ -71,4 +71,18 @@ public class FilmController {
         log.debug("Запрос на получение {} популярных фильмов", count);
         return filmService.getPopularFilms(count);
     }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getAllDirectorFilms(
+            @PathVariable int directorId,
+            @RequestParam(defaultValue = "year") String sortBy) {
+        return switch (sortBy.toLowerCase()) {
+            case "likes" -> filmService.getAllDirectorFilmsSortedByLikes(directorId);
+            case "year" -> filmService.getAllDirectorFilmsSortedByYear(directorId);
+            default -> throw new IllegalArgumentException(
+                    "Недопустимое значение параметра sortBy: " + sortBy +
+                            ". Допустимые значения: 'year', 'likes'");
+        };
+
+    }
 }

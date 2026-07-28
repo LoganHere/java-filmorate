@@ -27,6 +27,7 @@ public class Film {
 
     private Set<Genre> genres = new TreeSet<>((g1, g2) -> Integer.compare(g1.getId(), g2.getId()));
     private Mpa mpa;
+    private Set<Director> director = new TreeSet<>((d1, d2) -> Integer.compare(d1.getId(), d2.getId()));
 
     private Set<Long> likes = new HashSet<>();
 

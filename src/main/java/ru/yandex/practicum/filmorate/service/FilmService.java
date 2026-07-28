@@ -155,4 +155,12 @@ public class FilmService {
             genreService.validateGenresExist(genreIds);
         }
     }
+
+    public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
+        return filmStorage.getAllDirectorFilmsSortedByLikes(directorId);
+    }
+
+    public List<Film> getAllDirectorFilmsSortedByYear(int directorId) {
+        return filmStorage.getAllDirectorFilmsSortedByYear(directorId);
+    }
 }
