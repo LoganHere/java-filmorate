@@ -29,7 +29,7 @@ public class JdbcEventStorage implements EventStorage {
     @Override
     public Event addEvent(Event event) {
         long currentTime = System.currentTimeMillis();
-        if(event.getTimestamp() == 0) {
+        if (event.getTimestamp() == 0) {
             event.setTimestamp(currentTime);
         }
 
