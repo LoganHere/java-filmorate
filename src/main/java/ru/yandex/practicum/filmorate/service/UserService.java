@@ -25,15 +25,15 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final FilmService filmService;
     private final EventService eventService;
+    private final FilmService filmService;
 
     @Autowired
-    public UserService(UserStorage userStorage, FilmService filmService,
-                       EventService eventService) {
+    public UserService(UserStorage userStorage, EventService eventService,
+                       FilmService filmService) {
         this.userStorage = userStorage;
-        this.filmService = filmService;
         this.eventService = eventService;
+        this.filmService = filmService;
     }
 
     public List<User> getAllUsers() {
