@@ -3,12 +3,12 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dal.FilmStorage;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.dal.FilmStorage;
-import ru.yandex.practicum.filmorate.dal.UserStorage;
 
 import java.util.List;
 import java.util.Set;
@@ -115,6 +115,13 @@ public class FilmService {
         }
         log.debug("Запрос на получение {} популярных фильмов", count);
         return filmStorage.getPopularFilms(count);
+    }
+
+    public List<Film> getLikedFilmsByUser(Long userId) {
+        log.debug("Начало операции получения списка понравившихся фильмов для пользователя с ID {}", userId);
+        List<Film> likedFilms = filmStorage.getLikedFilmsByUser(userId);
+        log.info("Найден список из {} пролайканных фильмов", likedFilms.size());
+        return likedFilms;
     }
 
     private void validateFilm(Film film) {

@@ -3,13 +3,15 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.dal.UserStorage;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -18,10 +20,12 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final FilmService filmService;
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(UserStorage userStorage, FilmService filmService) {
         this.userStorage = userStorage;
+        this.filmService = filmService;
     }
 
     public List<User> getAllUsers() {
@@ -129,5 +133,40 @@ public class UserService {
             }
         }
         return commonFriends;
+    }
+
+    public List<Film> getFilmsRecommendations(Long userId) {
+        log.info("Начинается поиск пользователей для составления рекомендации.");
+        if (!isExistsLikedFilms(userId)) {
+            log.info("Пользователь с ID {} ещё не ставил like ни одному фильму", userId);
+            return Collections.emptyList();
+        }
+
+        List<Long> otherUserIds = userStorage.getUserIdsWithMostLikedFilmsMatches(userId);
+        if (otherUserIds.isEmpty()) {
+            log.info("Не нашлось ни одного пользователя с пересечением по понравившимся фильмам.");
+            return Collections.emptyList();
+        }
+        log.info("ID пользователей для составление рекомендации {}", otherUserIds);
+
+        List<Film> filmsLikedByUser = filmService.getLikedFilmsByUser(userId);
+        List<Film> recommendedFilms = new ArrayList<>();
+
+        for (Long otherUserId : otherUserIds) {
+            List<Film> filmsLikedByOtherUser = filmService.getLikedFilmsByUser(otherUserId);
+            recommendedFilms = filmsLikedByOtherUser.stream()
+                    .filter(film -> !filmsLikedByUser.contains(film))
+                    .collect(Collectors.toList());
+
+            if (!recommendedFilms.isEmpty()) {
+                break;
+            }
+        }
+        return recommendedFilms;
+    }
+
+    private boolean isExistsLikedFilms(Long userId) {
+        log.info("Проверка существования записи в таблице film_likes для пользователя с ID {}", userId);
+        return userStorage.isExistsLikedFilms(userId);
     }
 }
