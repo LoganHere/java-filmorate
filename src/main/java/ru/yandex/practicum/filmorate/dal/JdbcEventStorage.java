@@ -56,7 +56,7 @@ public class JdbcEventStorage implements EventStorage {
 
     @Override
     public List<Event> getEventsByUserId(Long userId) {
-        String sql = "SELECT * FROM events WHERE user_id = ? ORDER BY timestamp DESC";
+        String sql = "SELECT * FROM events WHERE user_id = ? ORDER BY event_id ASC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
             Event event = new Event();
             event.setTimestamp(rs.getLong("timestamp"));

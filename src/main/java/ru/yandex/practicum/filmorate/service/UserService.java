@@ -7,13 +7,6 @@ import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
-import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.dal.UserStorage;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
-import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,12 +82,7 @@ public class UserService {
         userStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
 
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(friendId);
-        event.setEventType(EventType.FRIEND);
-        event.setOperation(Operation.ADD);
-        eventService.addEvent(event);
+        saveEvent(userId, friendId, Operation.ADD);
 
         return getUserById(userId);
     }
@@ -108,12 +96,7 @@ public class UserService {
         userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
 
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(friendId);
-        event.setEventType(EventType.FRIEND);
-        event.setOperation(Operation.REMOVE);
-        eventService.addEvent(event);
+        saveEvent(userId, friendId, Operation.REMOVE);
 
         return getUserById(userId);
     }
@@ -192,5 +175,14 @@ public class UserService {
     private boolean isExistsLikedFilms(Long userId) {
         log.info("Проверка существования записи в таблице film_likes для пользователя с ID {}", userId);
         return userStorage.isExistsLikedFilms(userId);
+    }
+
+    private void saveEvent(Long userId, Long entityId, Operation operation) {
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(entityId);
+        event.setEventType(EventType.FRIEND);
+        event.setOperation(operation);
+        eventService.addEvent(event);
     }
 }
