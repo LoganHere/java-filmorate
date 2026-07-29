@@ -19,7 +19,6 @@ public class Film {
     private String description;
 
     @NotNull(message = "Дата релиза не может быть пустой")
-//    @PastOrPresent(message = "Дата не может быть в будущем") тест постман с режиссёрами не пропускает
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
