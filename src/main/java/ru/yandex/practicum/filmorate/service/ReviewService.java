@@ -36,7 +36,7 @@ public class ReviewService {
     public Review addReview(Review review) {
         validateReview(review);
         Review savedReview = reviewStorage.addReview(review);
-        saveEvent(savedReview.getUserId(), savedReview.getReviewId(), Operation.ADD);
+        eventService.saveEvent(savedReview.getUserId(), savedReview.getReviewId(), EventType.REVIEW, Operation.ADD);
         return savedReview;
     }
 
@@ -46,14 +46,14 @@ public class ReviewService {
         }
         getReviewById(review.getReviewId());
         Review updatedReview = reviewStorage.updateReview(review);
-        saveEvent(updatedReview.getUserId(), updatedReview.getReviewId(), Operation.UPDATE);
+        eventService.saveEvent(updatedReview.getUserId(), updatedReview.getReviewId(), EventType.REVIEW, Operation.UPDATE);
         return updatedReview;
     }
 
     public void deleteReview(Long reviewId) {
         Review review = getReviewById(reviewId);
         reviewStorage.deleteReview(review.getReviewId());
-        saveEvent(review.getUserId(), review.getReviewId(), Operation.REMOVE);
+        eventService.saveEvent(review.getUserId(), review.getReviewId(), EventType.REVIEW, Operation.REMOVE);
     }
 
     public Review getReviewById(Long reviewId) {
@@ -86,15 +86,6 @@ public class ReviewService {
     public void removeDislike(Long reviewId, Long userId) {
         validateReviewAndUser(reviewId, userId);
         reviewStorage.removeDislike(reviewId, userId);
-    }
-
-    private void saveEvent(Long userId, Long entityId, Operation operation) {
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(entityId);
-        event.setEventType(EventType.REVIEW);
-        event.setOperation(operation);
-        eventService.addEvent(event);
     }
 
     private void validateReview(Review review) {

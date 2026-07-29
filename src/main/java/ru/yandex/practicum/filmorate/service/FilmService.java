@@ -87,7 +87,7 @@ public class FilmService {
         log.info("Пользователь {} поставил лайк фильму {}. Всего лайков: {}",
                 userId, filmId, film.getLikesCount());
 
-        saveEvent(userId, filmId, Operation.ADD);
+        eventService.saveEvent(userId, filmId, EventType.LIKE, Operation.ADD);
 
         return film;
     }
@@ -111,7 +111,7 @@ public class FilmService {
         log.info("Пользователь {} убрал лайк с фильма {}. Осталось лайков: {}",
                 userId, filmId, film.getLikesCount());
 
-        saveEvent(userId, filmId, Operation.REMOVE);
+        eventService.saveEvent(userId, filmId, EventType.LIKE, Operation.REMOVE);
 
         return film;
     }
@@ -146,15 +146,6 @@ public class FilmService {
         List<Film> directorFilm = filmStorage.getAllDirectorFilmsSortedByYear(directorId);
         log.info("Найден список из {} фильмов режиссёра, сортированных по году релиза", directorFilm.size());
         return directorFilm;
-    }
-
-    private void saveEvent(Long userId, Long entityId, Operation operation) {
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(entityId);
-        event.setEventType(EventType.LIKE);
-        event.setOperation(operation);
-        eventService.addEvent(event);
     }
 
     private void validateFilm(Film film) {

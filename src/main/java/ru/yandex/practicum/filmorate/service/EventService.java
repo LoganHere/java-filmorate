@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dal.EventStorage;
 import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.Operation;
 
 import java.util.List;
 
@@ -24,8 +26,14 @@ public class EventService {
         return eventStorage.getEventsByUserId(userId);
     }
 
-    public Event addEvent(Event event) {
-        log.debug("Добавление события: {}", event);
-        return eventStorage.addEvent(event);
+    public void saveEvent(Long userId, Long entityId, EventType eventType, Operation operation) {
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(entityId);
+        event.setEventType(eventType);
+        event.setOperation(operation);
+        eventStorage.addEvent(event);
+        log.debug("Событие сохранено: userId={}, entityId={}, type={}, operation={}",
+                userId, entityId, eventType, operation);
     }
 }

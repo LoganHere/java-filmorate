@@ -82,7 +82,7 @@ public class UserService {
         userStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
 
-        saveEvent(userId, friendId, Operation.ADD);
+        eventService.saveEvent(userId, friendId, EventType.FRIEND, Operation.ADD);
 
         return getUserById(userId);
     }
@@ -96,7 +96,7 @@ public class UserService {
         userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
 
-        saveEvent(userId, friendId, Operation.REMOVE);
+        eventService.saveEvent(userId, friendId, EventType.FRIEND, Operation.REMOVE);
 
         return getUserById(userId);
     }
@@ -177,12 +177,4 @@ public class UserService {
         return userStorage.isExistsLikedFilms(userId);
     }
 
-    private void saveEvent(Long userId, Long entityId, Operation operation) {
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(entityId);
-        event.setEventType(EventType.FRIEND);
-        event.setOperation(operation);
-        eventService.addEvent(event);
-    }
 }
