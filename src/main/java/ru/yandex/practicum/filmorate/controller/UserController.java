@@ -115,12 +115,4 @@ public class UserController {
         log.debug("Найдено {} рекомендованных фильмов для пользователя с ID {}", recommendedFilms.size(), id);
         return recommendedFilms;
     }
-
-    @GetMapping("/{id}/feed")
-    public List<Event> getEventsByUserId(@PathVariable Long id) {
-        log.info("Запрос на получение событий у пользователя {}", id);
-        List<Event> events = eventService.getFeed(id);
-        log.debug("Найдено {} событий у пользователя {}", events.size(), id);
-        return events;
-    }
 }

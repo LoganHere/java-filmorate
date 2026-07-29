@@ -124,7 +124,7 @@ public class JdbcReviewStorage implements ReviewStorage {
         String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
         Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
 
-        if (count != null && count > 0) {
+        if (count > 0) {
             String updateSql = "UPDATE review_likes SET is_like = ? WHERE review_id = ? AND user_id = ?";
             jdbcTemplate.update(updateSql, isLike, reviewId, userId);
         } else {

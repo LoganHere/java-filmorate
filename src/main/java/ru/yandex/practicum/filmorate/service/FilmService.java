@@ -7,13 +7,6 @@ import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.*;
-import ru.yandex.practicum.filmorate.dal.FilmStorage;
-import ru.yandex.practicum.filmorate.dal.UserStorage;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.*;
 
 import java.util.List;
@@ -94,12 +87,7 @@ public class FilmService {
         log.info("Пользователь {} поставил лайк фильму {}. Всего лайков: {}",
                 userId, filmId, film.getLikesCount());
 
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(filmId);
-        event.setEventType(EventType.LIKE);
-        event.setOperation(Operation.ADD);
-        eventService.addEvent(event);
+        saveEvent(userId, filmId, Operation.ADD);
 
         return film;
     }
@@ -123,12 +111,7 @@ public class FilmService {
         log.info("Пользователь {} убрал лайк с фильма {}. Осталось лайков: {}",
                 userId, filmId, film.getLikesCount());
 
-        Event event = new Event();
-        event.setUserId(userId);
-        event.setEntityId(filmId);
-        event.setEventType(EventType.LIKE);
-        event.setOperation(Operation.REMOVE);
-        eventService.addEvent(event);
+        saveEvent(userId, filmId, Operation.REMOVE);
 
         return film;
     }
@@ -147,6 +130,15 @@ public class FilmService {
         List<Film> likedFilms = filmStorage.getLikedFilmsByUser(userId);
         log.info("Найден список из {} пролайканных фильмов", likedFilms.size());
         return likedFilms;
+    }
+
+    private void saveEvent(Long userId, Long entityId, Operation operation) {
+        Event event = new Event();
+        event.setUserId(userId);
+        event.setEntityId(entityId);
+        event.setEventType(EventType.LIKE);
+        event.setOperation(operation);
+        eventService.addEvent(event);
     }
 
     public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
