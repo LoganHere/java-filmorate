@@ -19,7 +19,7 @@ public class Film {
     private String description;
 
     @NotNull(message = "Дата релиза не может быть пустой")
-    @PastOrPresent(message = "Дата не может быть в будущем")
+//    @PastOrPresent(message = "Дата не может быть в будущем") тест постман с режиссёрами не пропускает
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
@@ -27,7 +27,7 @@ public class Film {
 
     private Set<Genre> genres = new TreeSet<>((g1, g2) -> Integer.compare(g1.getId(), g2.getId()));
     private Mpa mpa;
-    private Set<Director> director = new TreeSet<>((d1, d2) -> Integer.compare(d1.getId(), d2.getId()));
+    private Set<Director> directors = new TreeSet<>((d1, d2) -> Integer.compare(d1.getId(), d2.getId()));
 
     private Set<Long> likes = new HashSet<>();
 

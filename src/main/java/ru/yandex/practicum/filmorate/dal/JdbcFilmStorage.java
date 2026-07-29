@@ -18,7 +18,6 @@ import java.sql.Types;
 import java.util.*;
 import java.util.stream.Collectors;
 
-//Комментарии остались на случай, если не будут проходиться тесты postman на github
 @Slf4j
 @Repository("jdbcFilmStorage")
 public class JdbcFilmStorage implements FilmStorage {
@@ -55,11 +54,7 @@ public class JdbcFilmStorage implements FilmStorage {
             } else {
                 ps.setNull(5, Types.INTEGER);
             }
-//            if (film.getDirector() != null) {
-//                ps.setInt(6, film.getDirector().getId());
-//            } else {
-//                ps.setNull(6, Types.INTEGER);
-//            }
+
             return ps;
         }, keyHolder);
 
@@ -67,7 +62,7 @@ public class JdbcFilmStorage implements FilmStorage {
         film.setId(filmId);
 
         updateFilmGenres(filmId, film.getGenres());
-        updateFilmDirectors(filmId, film.getDirector());
+        updateFilmDirectors(filmId, film.getDirectors());
 
         log.debug("Добавлен фильм с id: {}", filmId);
         return getFilmById(filmId).orElseThrow();
@@ -84,7 +79,6 @@ public class JdbcFilmStorage implements FilmStorage {
                 java.sql.Date.valueOf(film.getReleaseDate()),
                 film.getDuration(),
                 film.getMpa() != null ? film.getMpa().getId() : null,
-//                film.getDirector() != null ? film.getDirector().getId() : null,
                 film.getId()
         );
 
@@ -94,7 +88,7 @@ public class JdbcFilmStorage implements FilmStorage {
 
         String deleteDirectorsSql = "DELETE FROM film_directors WHERE film_id = ?";
         jdbcTemplate.update(deleteDirectorsSql, film.getId());
-        updateFilmDirectors(film.getId(), film.getDirector());
+        updateFilmDirectors(film.getId(), film.getDirectors());
 
         log.debug("Обновлен фильм с id: {}", film.getId());
         return getFilmById(film.getId()).orElseThrow();
@@ -202,24 +196,24 @@ public class JdbcFilmStorage implements FilmStorage {
     public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
         String sql = """
                 SELECT
-                    f.ID,
-                    f.NAME,
-                    f.DESCRIPTION,
-                    f.RELEASE_DATE,
-                    f.DURATION,
-                    f.MPA_ID,
-                    d.ID AS director_id,
-                    d.NAME AS director_name
-                FROM FILMS f
-                JOIN FILM_DIRECTORS fd ON fd.FILM_ID = f.ID
-                JOIN DIRECTORS d ON d.ID = fd.DIRECTOR_ID
+                    f.id,
+                    f.name,
+                    f.description,
+                    f.release_date,
+                    f.duration,
+                    f.mpa_id,
+                    d.id AS director_id,
+                    d.name AS director_name
+                FROM films f
+                JOIN film_directors fd ON fd.film_id = f.id
+                JOIN directors d ON d.id = fd.director_id
                 LEFT JOIN (
-                    SELECT FILM_ID, COUNT(*) AS likes_count
-                    FROM FILM_LIKES
-                    GROUP BY FILM_ID
-                ) fl ON f.ID = fl.FILM_ID
-                WHERE d.ID = ?
-                GROUP BY f.ID, f.NAME, f.DESCRIPTION, f.RELEASE_DATE, f.DURATION, f.MPA_ID, d.ID, d.NAME
+                    SELECT film_id, COUNT(*) AS likes_count
+                    FROM film_likes
+                    GROUP BY film_id
+                ) fl ON f.id = fl.film_id
+                WHERE d.id = ?
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, d.id, d.name
                 ORDER BY COALESCE(fl.likes_count, 0) DESC;
                 """;
         List<Film> films = jdbcTemplate.query(sql, filmMapper, directorId);
@@ -230,13 +224,20 @@ public class JdbcFilmStorage implements FilmStorage {
     @Override
     public List<Film> getAllDirectorFilmsSortedByYear(int directorId) {
         String sql = """
-                SELECT f.ID, f.NAME, f.DESCRIPTION, f.RELEASE_DATE, f.duration, f.MPA_ID, d.ID AS director_id,
-                d.NAME AS director_name
-                FROM FILMS f
-                JOIN FILM_DIRECTORS fd ON fd.FILM_ID =f.ID
-                JOIN DIRECTORS d ON d.ID = fd.DIRECTOR_ID
-                WHERE d.ID = ?
-                ORDER BY f.RELEASE_DATE DESC;
+                SELECT
+                    f.id,
+                    f.name,
+                    f.description,
+                    f.release_date,
+                    f.duration,
+                    f.mpa_id,
+                    d.id AS director_id,
+                    d.name AS director_name
+                FROM films f
+                JOIN film_directors fd ON fd.film_id = f.id
+                JOIN directors d ON d.id = fd.director_id
+                WHERE d.id = ?
+                ORDER BY EXTRACT(YEAR FROM f.release_date);
                 """;
         List<Film> films = jdbcTemplate.query(sql, filmMapper, directorId);
         loadFilmDetails(films);
@@ -257,7 +258,7 @@ public class JdbcFilmStorage implements FilmStorage {
 
         for (Film film : films) {
             film.setGenres(new LinkedHashSet<>(genresMap.getOrDefault(film.getId(), List.of())));
-            film.setDirector(new LinkedHashSet<>(directorMap.getOrDefault(film.getId(), List.of())));
+            film.setDirectors(new LinkedHashSet<>(directorMap.getOrDefault(film.getId(), List.of())));
             film.setLikes(new HashSet<>(likesMap.getOrDefault(film.getId(), List.of())));
             if (mpaMap.containsKey(film.getId())) {
                 film.setMpa(mpaMap.get(film.getId()));
@@ -290,11 +291,6 @@ public class JdbcFilmStorage implements FilmStorage {
             return Map.of();
         }
         String placeholders = filmIds.stream().map(id -> "?").collect(Collectors.joining(", "));
-//        String sql = "SELECT f.id AS film_id, d.id AS director_id, d.name AS director_name " +
-//                "FROM films f " +
-//                "LEFT JOIN directors d ON f.director_id = d.id " +
-//                "WHERE f.id IN (" + placeholders + ")";
-
         String sql = "SELECT fd.film_id, d.id, d.name FROM film_directors fd " +
                 "JOIN directors d ON fd.director_id = d.id " +
                 "WHERE fd.film_id IN (" + placeholders + ") " +
@@ -337,7 +333,6 @@ public class JdbcFilmStorage implements FilmStorage {
         if (genres == null || genres.isEmpty()) {
             return;
         }
-
         String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
         List<Object[]> batchArgs = genres.stream()
                 .sorted(Comparator.comparingInt(Genre::getId))

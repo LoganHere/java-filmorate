@@ -44,7 +44,7 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseStatus(HttpStatus.BAD_REQUEST) //постман не пускал с not found
     public Map<String, String> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
         log.warn("Ошибка чтения JSON: {}", e.getMessage());
         Throwable cause = e.getCause();
