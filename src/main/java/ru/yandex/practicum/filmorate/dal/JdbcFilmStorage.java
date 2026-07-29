@@ -129,15 +129,40 @@ public class JdbcFilmStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopularFilms(int count) {
-        String sql = "SELECT f.*, COUNT(fl.user_id) AS likes_count " +
-                "FROM films f " +
-                "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
-                "GROUP BY f.id " +
-                "ORDER BY likes_count DESC " +
-                "LIMIT ?";
+    public List<Film> getPopularFilms(Integer count, Integer genreId, Integer year) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, COUNT(fl.user_id) AS likes_count " +
+                        "FROM films f " +
+                        "LEFT JOIN film_likes fl ON f.id = fl.film_id"
+        );
 
-        List<Film> films = jdbcTemplate.query(sql, filmMapper, count);
+        List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
+
+        if (genreId != null) {
+            sql.append(" INNER JOIN film_genres fg ON f.id = fg.film_id");
+            params.add(genreId);
+            conditions.add("fg.genre_id = ?");
+        }
+
+        if (year != null) {
+            params.add(year);
+            conditions.add("YEAR(f.release_date) = ?");
+        }
+
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", conditions));
+        }
+
+        sql.append(" GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id")
+                .append(" ORDER BY likes_count DESC");
+
+        if (count != null) {
+            sql.append(" LIMIT ?");
+            params.add(count);
+        }
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), filmMapper, params.toArray());
         loadFilmDetails(films);
         return films;
     }

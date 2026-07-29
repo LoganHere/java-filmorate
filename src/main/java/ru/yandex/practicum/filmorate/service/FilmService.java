@@ -121,13 +121,18 @@ public class FilmService {
         return film;
     }
 
-    public List<Film> getPopularFilms(int count) {
-        if (count <= 0) {
+    public List<Film> getPopularFilms(Integer count, Integer genreId, Integer year) {
+        if (count != null && count <= 0) {
             log.warn("Запрошено невалидное количество фильмов: {}", count);
             throw new ValidationException("Количество фильмов должно быть больше 0");
         }
+
+        if (genreId != null) {
+            genreService.getGenreById(genreId);
+        }
+
         log.debug("Запрос на получение {} популярных фильмов", count);
-        return filmStorage.getPopularFilms(count);
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 
     public List<Film> getLikedFilmsByUser(Long userId) {
