@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.dal;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class JdbcDirectorStorage implements DirectorStorage {
@@ -36,6 +38,7 @@ public class JdbcDirectorStorage implements DirectorStorage {
 
         int directorId = Objects.requireNonNull(keyHolder.getKey()).intValue();
         director.setId(directorId);
+        log.debug("Добавлен режиссёр с id: {}", directorId);
         return director;
     }
 
@@ -49,17 +52,16 @@ public class JdbcDirectorStorage implements DirectorStorage {
     }
 
     @Override
-    public Optional<Director> getDirectorById(Long id) {
+    public Optional<Director> getDirectorById(int id) {
         try {
             String sql = """
                     SELECT *
                     FROM directors
                     WHERE id = ?;
                     """;
-            Optional<Director> optionalDirector = Optional.ofNullable(jdbcTemplate.queryForObject(
+            return Optional.ofNullable(jdbcTemplate.queryForObject(
                     sql,
                     this::mapRowToDirector, id));
-            return optionalDirector;
         } catch (EmptyResultDataAccessException e) {
             throw new NotFoundException("Режиссёр под ID " + id + " не найден.");
         }
@@ -72,17 +74,26 @@ public class JdbcDirectorStorage implements DirectorStorage {
                 WHERE id = ?;
                 """;
         jdbcTemplate.update(sql, director.getName(), director.getId());
+        log.debug("Обновлен режиссёр с id: {}", director.getId());
         return director;
     }
 
     @Override
-    public void deleteDirectorById(Long id) {
+    public void deleteDirectorById(int id) {
         String sql = """
                 DELETE
                 FROM directors
                 WHERE id = ?;
                 """;
         jdbcTemplate.update(sql, id);
+        log.debug("Удален режиссёр с id: {}", id);
+    }
+
+    @Override
+    public boolean containsDirector(int id) {
+        String sql = "SELECT COUNT(*) FROM directors WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id);
+        return count != null && count > 0;
     }
 
     private Director mapRowToDirector(ResultSet rs, int rowNum) throws SQLException {

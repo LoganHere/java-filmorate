@@ -10,10 +10,11 @@ public interface DirectorStorage {
 
     List<Director> getAllDirectors();
 
-    Optional<Director> getDirectorById(Long id);
+    Optional<Director> getDirectorById(int id);
 
     Director updateDirector(Director director);
 
-    void deleteDirectorById(Long id);
+    void deleteDirectorById(int id);
 
+    boolean containsDirector(int id);
 }

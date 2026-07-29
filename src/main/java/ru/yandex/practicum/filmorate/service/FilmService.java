@@ -124,6 +124,22 @@ public class FilmService {
         return likedFilms;
     }
 
+    public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
+        log.debug("Начало операции получения списка всех фильмов режиссёра с ID {}, сортированных по количеству лайков",
+                directorId);
+        List<Film> directorFilm = filmStorage.getAllDirectorFilmsSortedByLikes(directorId);
+        log.info("Найден список из {} фильмов режиссёра, сортированных по количеству лайков", directorFilm.size());
+        return directorFilm;
+    }
+
+    public List<Film> getAllDirectorFilmsSortedByYear(int directorId) {
+        log.debug("Начало операции получения списка всех фильмов режиссёра с ID {}, сортированных по году релиза",
+                directorId);
+        List<Film> directorFilm = filmStorage.getAllDirectorFilmsSortedByYear(directorId);
+        log.info("Найден список из {} фильмов режиссёра, сортированных по году релиза", directorFilm.size());
+        return directorFilm;
+    }
+
     private void validateFilm(Film film) {
         if (film.getMpa() != null) {
             mpaService.validateMpaExists(film.getMpa().getId());
@@ -134,13 +150,5 @@ public class FilmService {
                     .collect(Collectors.toSet());
             genreService.validateGenresExist(genreIds);
         }
-    }
-
-    public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
-        return filmStorage.getAllDirectorFilmsSortedByLikes(directorId);
-    }
-
-    public List<Film> getAllDirectorFilmsSortedByYear(int directorId) {
-        return filmStorage.getAllDirectorFilmsSortedByYear(directorId);
     }
 }
