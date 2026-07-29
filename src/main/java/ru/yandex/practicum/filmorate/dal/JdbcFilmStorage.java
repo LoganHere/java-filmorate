@@ -256,56 +256,39 @@ public class JdbcFilmStorage implements FilmStorage {
             throw new ValidationException("Параметр by не может быть пустым");
         }
 
+        boolean searchTitle = searchBy.contains("title");
+        boolean searchDirector = searchBy.contains("director");
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, COUNT(fl.user_id) AS likes_count " +
+                        "FROM films f " +
+                        "LEFT JOIN film_likes fl ON f.id = fl.film_id"
+        );
+
         String likePattern = "%" + query.toLowerCase() + "%";
+        List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
 
-        if (searchBy.contains("title") && searchBy.contains("director")) {
-            return searchByTitleOrDirector(likePattern);
-        } else if (searchBy.contains("title")) {
-            return searchByTitle(likePattern);
-        } else {
-            return searchByDirector(likePattern);
+        if (searchDirector) {
+            sql.append(" LEFT JOIN film_directors fd ON f.id = fd.film_id")
+                    .append(" LEFT JOIN directors d ON fd.director_id = d.id");
+            params.add(likePattern);
+            conditions.add("LOWER(d.name) LIKE LOWER(?)");
         }
-    }
 
-    private List<Film> searchByTitle(String likePattern) {
-        String sql = """
-                SELECT f.* FROM films f
-                LEFT JOIN film_likes fl ON f.id = fl.film_id
-                WHERE LOWER(f.name) LIKE LOWER (?)
-                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
-                ORDER BY COUNT(fl.user_id) DESC;
-                """;
-        List<Film> films = jdbcTemplate.query(sql, filmMapper, likePattern);
-        loadFilmDetails(films);
-        return films;
-    }
+        if (searchTitle) {
+            params.add(likePattern);
+            conditions.add("LOWER(f.name) LIKE LOWER(?)");
+        }
 
-    private List<Film> searchByDirector(String likePattern) {
-        String sql = """
-                SELECT f.* FROM films f
-                LEFT JOIN film_likes fl ON f.id = fl.film_id
-                LEFT JOIN film_directors fd ON f.id = fd.film_id
-                LEFT JOIN directors d ON fd.director_id = d.id
-                WHERE LOWER(d.name) LIKE LOWER (?)
-                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
-                ORDER BY COUNT(fl.user_id) DESC;
-                """;
-        List<Film> films = jdbcTemplate.query(sql, filmMapper, likePattern);
-        loadFilmDetails(films);
-        return films;
-    }
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" OR ", conditions));
+        }
 
-    private List<Film> searchByTitleOrDirector(String likePattern) {
-        String sql = """
-                SELECT f.* FROM films f
-                LEFT JOIN film_likes fl ON f.id = fl.film_id
-                LEFT JOIN film_directors fd ON f.id = fd.film_id
-                LEFT JOIN directors d ON fd.director_id = d.id
-                WHERE LOWER(f.name) LIKE LOWER (?) OR LOWER(d.name) LIKE LOWER (?)
-                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id
-                ORDER BY COUNT(fl.user_id) DESC;
-                """;
-        List<Film> films = jdbcTemplate.query(sql, filmMapper, likePattern, likePattern);
+        sql.append(" GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id")
+                .append(" ORDER BY likes_count DESC");
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), filmMapper, params.toArray());
         loadFilmDetails(films);
         return films;
     }
