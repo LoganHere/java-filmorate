@@ -91,50 +91,24 @@ public class JdbcReviewStorage implements ReviewStorage {
 
     @Override
     public void addLike(Long reviewId, Long userId) {
-        String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
-        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
-
-        if (count != null && count > 0) {
-            log.warn("Пользователь {} уже оценил отзыв {}", userId, reviewId);
-            String updateSql = "UPDATE review_likes SET is_like = true WHERE review_id = ? AND user_id = ?";
-            jdbcTemplate.update(updateSql, reviewId, userId);
-            updateUsefulCount(reviewId);
-            return;
-        }
-
-        String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, ?)";
-        jdbcTemplate.update(sql, reviewId, userId, true);
-        updateUsefulCount(reviewId);
+        addRating(reviewId, userId, true);
     }
 
     @Override
     public void addDislike(Long reviewId, Long userId) {
-        String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
-        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
-
-        if (count != null && count > 0) {
-            log.warn("Пользователь {} уже оценил отзыв {}", userId, reviewId);
-            String updateSql = "UPDATE review_likes SET is_like = false WHERE review_id = ? AND user_id = ?";
-            jdbcTemplate.update(updateSql, reviewId, userId);
-            updateUsefulCount(reviewId);
-            return;
-        }
-
-        String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, ?)";
-        jdbcTemplate.update(sql, reviewId, userId, false);
-        updateUsefulCount(reviewId);
+        addRating(reviewId, userId, false);
     }
 
     @Override
     public void removeLike(Long reviewId, Long userId) {
-        String sql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ?";
+        String sql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = true";
         jdbcTemplate.update(sql, reviewId, userId);
         updateUsefulCount(reviewId);
     }
 
     @Override
     public void removeDislike(Long reviewId, Long userId) {
-        String sql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ?";
+        String sql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ? AND is_like = false";
         jdbcTemplate.update(sql, reviewId, userId);
         updateUsefulCount(reviewId);
     }
@@ -144,6 +118,21 @@ public class JdbcReviewStorage implements ReviewStorage {
         String sql = "SELECT useful FROM reviews WHERE review_id = ?";
         Integer useful = jdbcTemplate.queryForObject(sql, Integer.class, reviewId);
         return useful != null ? useful : 0;
+    }
+
+    private void addRating(Long reviewId, Long userId, boolean isLike) {
+        String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
+
+        if (count != null && count > 0) {
+            String updateSql = "UPDATE review_likes SET is_like = ? WHERE review_id = ? AND user_id = ?";
+            jdbcTemplate.update(updateSql, isLike, reviewId, userId);
+        } else {
+            String sql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, ?)";
+            jdbcTemplate.update(sql, reviewId, userId, isLike);
+        }
+
+        updateUsefulCount(reviewId);
     }
 
     private void updateUsefulCount(Long reviewId) {
