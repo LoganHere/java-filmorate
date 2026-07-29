@@ -3,9 +3,9 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.ReviewStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
-import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
@@ -36,17 +36,13 @@ public class ReviewService {
         if (review.getReviewId() == null) {
             throw new ValidationException("ID отзыва не может быть пустым");
         }
-        if (!reviewStorage.getReviewById(review.getReviewId()).isPresent()) {
-            throw new NotFoundException("Отзыв с id " + review.getReviewId() + " не найден");
-        }
+        getReviewById(review.getReviewId());
         return reviewStorage.updateReview(review);
     }
 
     public void deleteReview(Long reviewId) {
-        if (!reviewStorage.getReviewById(reviewId).isPresent()) {
-            throw new NotFoundException("Отзыв с id " + reviewId + " не найден");
-        }
-        reviewStorage.deleteReview(reviewId);
+        Review review = getReviewById(reviewId);
+        reviewStorage.deleteReview(review.getReviewId());
     }
 
     public Review getReviewById(Long reviewId) {
@@ -91,9 +87,7 @@ public class ReviewService {
     }
 
     private void validateReviewAndUser(Long reviewId, Long userId) {
-        if (!reviewStorage.getReviewById(reviewId).isPresent()) {
-            throw new NotFoundException("Отзыв с id " + reviewId + " не найден");
-        }
+        getReviewById(reviewId);
         if (!userStorage.containsUser(userId)) {
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
