@@ -24,15 +24,17 @@ public class FilmService {
     private final GenreService genreService;
     private final MpaService mpaService;
     private final EventService eventService;
+    private final DirectorService directorService;
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage,
-                       GenreService genreService, MpaService mpaService,
+                       GenreService genreService, MpaService mpaService, DirectorService directorService,
                        EventService eventService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.genreService = genreService;
         this.mpaService = mpaService;
+        this.directorService = directorService;
         this.eventService = eventService;
     }
 
@@ -158,6 +160,11 @@ public class FilmService {
     public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
         log.debug("Начало операции получения списка всех фильмов режиссёра с ID {}, сортированных по количеству лайков",
                 directorId);
+        if (!directorService.containsDirector(directorId)) {
+            log.warn("Попытка получить список фильмов несуществующего режиссёра с id: {}", directorId);
+            throw new NotFoundException("Режиссёр с id " + directorId + " не найден");
+        }
+
         List<Film> directorFilm = filmStorage.getAllDirectorFilmsSortedByLikes(directorId);
         log.info("Найден список из {} фильмов режиссёра, сортированных по количеству лайков", directorFilm.size());
         return directorFilm;
@@ -166,6 +173,11 @@ public class FilmService {
     public List<Film> getAllDirectorFilmsSortedByYear(int directorId) {
         log.debug("Начало операции получения списка всех фильмов режиссёра с ID {}, сортированных по году релиза",
                 directorId);
+        if (!directorService.containsDirector(directorId)) {
+            log.warn("Попытка получить список фильмов несуществующего режиссёра с id: {}", directorId);
+            throw new NotFoundException("Режиссёр с id " + directorId + " не найден");
+        }
+
         List<Film> directorFilm = filmStorage.getAllDirectorFilmsSortedByYear(directorId);
         log.info("Найден список из {} фильмов режиссёра, сортированных по году релиза", directorFilm.size());
         return directorFilm;

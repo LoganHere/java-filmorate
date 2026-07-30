@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS film_directors (
     director_id INT NOT NULL,
     PRIMARY KEY (film_id, director_id),
     CONSTRAINT fd_film_fk FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
-    CONSTRAINT fd_director_fk FOREIGN KEY (director_id) REFERENCES directors(id) ON DELETE RESTRICT
+    CONSTRAINT fd_director_fk FOREIGN KEY (director_id) REFERENCES directors(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS genres (

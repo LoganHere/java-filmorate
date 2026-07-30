@@ -38,7 +38,7 @@ public class DirectorService {
             log.warn("Попытка обновить данные режиссёра без указания ID");
             throw new ValidationException("ID режиссёра должен быть указан!");
         }
-        if (!directorStorage.containsDirector(director.getId())) {
+        if (!containsDirector(director.getId())) {
             log.warn("Попытка обновить несуществующего режиссёра с id: {}", director.getId());
             throw new NotFoundException("Режиссёр с id " + director.getId() + " не найден");
         }
@@ -46,10 +46,14 @@ public class DirectorService {
     }
 
     public void deleteDirectorById(int id) {
-        if (!directorStorage.containsDirector(id)) {
+        if (!containsDirector(id)) {
             log.warn("Попытка удалить несуществующего режиссёра с id: {}", id);
             throw new NotFoundException("Режиссёр с id " + id + " не найден");
         }
         directorStorage.deleteDirectorById(id);
+    }
+
+    public boolean containsDirector(int directorId) {
+        return directorStorage.containsDirector(directorId);
     }
 }
