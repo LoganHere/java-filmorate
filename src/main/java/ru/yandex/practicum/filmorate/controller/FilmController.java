@@ -76,7 +76,7 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam (required = false) Integer count,
+    public List<Film> getPopularFilms(@RequestParam(required = false) Integer count,
                                       @RequestParam(required = false) Integer genreId,
                                       @RequestParam(required = false) Integer year) {
         log.debug("Запрос на получение {} популярных фильмов", count);
@@ -85,7 +85,7 @@ public class FilmController {
 
     @GetMapping("/search")
     public List<Film> searchFilms(@RequestParam(required = false) String query,
-                                    @RequestParam (defaultValue = "title") String by) {
+                                  @RequestParam(defaultValue = "title") String by) {
         log.info("Запрос на поиск фильмов: query={}, by={}", query, by);
         return filmService.searchFilms(query, by);
     }
@@ -103,5 +103,13 @@ public class FilmController {
                     "Недопустимое значение параметра sortBy: " + sortBy +
                             ". Допустимые значения: 'year', 'likes'");
         };
+    }
+
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(@RequestParam Long userId,
+                                     @RequestParam Long friendId) {
+        log.debug("Запрос на получение общих фильмов для пользователей с ID {} и {}",
+                userId, friendId);
+        return filmService.getCommonFilms(userId, friendId);
     }
 }

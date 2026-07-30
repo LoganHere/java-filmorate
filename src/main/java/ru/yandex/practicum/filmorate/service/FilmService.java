@@ -171,6 +171,21 @@ public class FilmService {
         return directorFilm;
     }
 
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        if (!userStorage.containsUser(userId)) {
+            log.warn("Не удалось найти пользователя с id {}", userId);
+            throw new NotFoundException("Пользователь с id " + userId + " не найден");
+        }
+        if (!userStorage.containsUser(friendId)) {
+            log.warn("Не удалось найти пользователя с id {}", friendId);
+            throw new NotFoundException("Пользователь с id " + friendId + " не найден");
+        }
+
+        List<Film> films = filmStorage.getCommonFilms(userId, friendId);
+        log.info("Получен список из {} фильмов общих для пользователей с ID {} и {}", films.size(), userId, friendId);
+        return films;
+    }
+
     private void validateFilm(Film film) {
         if (film.getMpa() != null) {
             mpaService.validateMpaExists(film.getMpa().getId());

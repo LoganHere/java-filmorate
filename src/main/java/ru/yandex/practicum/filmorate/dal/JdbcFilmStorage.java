@@ -318,6 +318,24 @@ public class JdbcFilmStorage implements FilmStorage {
         return films;
     }
 
+    public List<Film> getCommonFilms(Long userId, Long friendId) {
+        String sql = """
+                SELECT f.*, COUNT(fl.user_id) AS likes_count
+                FROM films f
+                LEFT JOIN film_likes fl ON f.id = fl.film_id
+                WHERE f.id IN (
+                    SELECT film_id FROM film_likes WHERE user_id = ?
+                    INTERSECT
+                    SELECT film_id FROM film_likes WHERE user_id = ?
+                    )
+                GROUP BY f.id
+                ORDER BY likes_count DESC;
+                """;
+        List<Film> films = jdbcTemplate.query(sql, filmMapper, userId, friendId);
+        loadFilmDetails(films);
+        return films;
+    }
+
     private void loadFilmDetails(List<Film> films) {
         if (films.isEmpty()) {
             return;
