@@ -83,7 +83,7 @@ public class FilmService {
 
         if (filmStorage.existsLike(filmId, userId)) {
             log.warn("Пользователь {} уже ставил лайк фильму {}", userId, filmId);
-            throw new ValidationException("Пользователь уже поставил лайк этому фильму");
+            return getFilmById(filmId);
         }
 
         filmStorage.addLike(filmId, userId);
