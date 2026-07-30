@@ -115,7 +115,7 @@ class JdbcFilmStorageTest {
 
         filmStorage.addLike(film1.getId(), savedUser.getId());
 
-        List<Film> popular = filmStorage.getPopularFilms(2);
+        List<Film> popular = filmStorage.getPopularFilms(2, null, null);
 
         assertThat(popular).hasSize(2);
         assertThat(popular.get(0).getId()).isEqualTo(film1.getId());

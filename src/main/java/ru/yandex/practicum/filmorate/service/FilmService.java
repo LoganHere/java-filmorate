@@ -9,8 +9,6 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.dal.FilmStorage;
-import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.model.*;
 
 import java.util.Collections;
@@ -121,13 +119,23 @@ public class FilmService {
         return film;
     }
 
-    public List<Film> getPopularFilms(int count) {
-        if (count <= 0) {
+    public List<Film> getPopularFilms(Integer count, Integer genreId, Integer year) {
+        if (count != null && count <= 0) {
             log.warn("Запрошено невалидное количество фильмов: {}", count);
             throw new ValidationException("Количество фильмов должно быть больше 0");
         }
+
+        if (year != null && year < 1895) {
+            log.warn("Запрошен невалидный год: {}", count);
+            throw new ValidationException("Год не может быть раньше 1895");
+        }
+
+        if (genreId != null) {
+            genreService.getGenreById(genreId);
+        }
+
         log.debug("Запрос на получение {} популярных фильмов", count);
-        return filmStorage.getPopularFilms(count);
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 
     public List<Film> getLikedFilmsByUser(Long userId) {

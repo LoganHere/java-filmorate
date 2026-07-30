@@ -19,7 +19,7 @@ public interface FilmStorage {
 
     boolean containsFilm(Long id);
 
-    List<Film> getPopularFilms(int count);
+    List<Film> getPopularFilms(Integer count, Integer genreId, Integer year);
 
     void addLike(Long filmId, Long userId);
 
