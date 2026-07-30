@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -240,6 +241,54 @@ public class JdbcFilmStorage implements FilmStorage {
                 ORDER BY EXTRACT(YEAR FROM f.release_date);
                 """;
         List<Film> films = jdbcTemplate.query(sql, filmMapper, directorId);
+        loadFilmDetails(films);
+        return films;
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        String[] parts = by.toLowerCase().split(",");
+        Set<String> searchBy = Arrays.stream(parts)
+                .map(String::trim)
+                .collect(Collectors.toSet());
+
+        if (searchBy.isEmpty()) {
+            throw new ValidationException("Параметр by не может быть пустым");
+        }
+
+        boolean searchTitle = searchBy.contains("title");
+        boolean searchDirector = searchBy.contains("director");
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.*, COUNT(fl.user_id) AS likes_count " +
+                        "FROM films f " +
+                        "LEFT JOIN film_likes fl ON f.id = fl.film_id"
+        );
+
+        String likePattern = "%" + query.toLowerCase() + "%";
+        List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
+
+        if (searchDirector) {
+            sql.append(" LEFT JOIN film_directors fd ON f.id = fd.film_id")
+                    .append(" LEFT JOIN directors d ON fd.director_id = d.id");
+            params.add(likePattern);
+            conditions.add("LOWER(d.name) LIKE LOWER(?)");
+        }
+
+        if (searchTitle) {
+            params.add(likePattern);
+            conditions.add("LOWER(f.name) LIKE LOWER(?)");
+        }
+
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" OR ", conditions));
+        }
+
+        sql.append(" GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id")
+                .append(" ORDER BY likes_count DESC");
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), filmMapper, params.toArray());
         loadFilmDetails(films);
         return films;
     }

@@ -7,8 +7,13 @@ import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.dal.FilmStorage;
+import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.model.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -130,6 +135,16 @@ public class FilmService {
         List<Film> likedFilms = filmStorage.getLikedFilmsByUser(userId);
         log.info("Найден список из {} пролайканных фильмов", likedFilms.size());
         return likedFilms;
+    }
+
+    public List<Film> searchFilms(String query, String by) {
+        if (query == null || query.isBlank()) {
+            log.warn("Поиск с пустым запросом – возвращаем пустой список");
+            return Collections.emptyList();
+        }
+        List<Film> films = filmStorage.searchFilms(query, by);
+        log.debug("Найдено {} фильмов по запросу '{}'", films.size(), query);
+        return films;
     }
 
     public List<Film> getAllDirectorFilmsSortedByLikes(int directorId) {
