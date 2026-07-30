@@ -7,8 +7,7 @@ import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.*;
 
 import java.util.List;
 import java.util.Set;
@@ -21,14 +20,17 @@ public class FilmService {
     private final UserStorage userStorage;
     private final GenreService genreService;
     private final MpaService mpaService;
+    private final EventService eventService;
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage,
-                       GenreService genreService, MpaService mpaService) {
+                       GenreService genreService, MpaService mpaService,
+                       EventService eventService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.genreService = genreService;
         this.mpaService = mpaService;
+        this.eventService = eventService;
     }
 
     public List<Film> getAllFilms() {
@@ -84,6 +86,9 @@ public class FilmService {
 
         log.info("Пользователь {} поставил лайк фильму {}. Всего лайков: {}",
                 userId, filmId, film.getLikesCount());
+
+        eventService.saveEvent(userId, filmId, EventType.LIKE, Operation.ADD);
+
         return film;
     }
 
@@ -105,6 +110,9 @@ public class FilmService {
 
         log.info("Пользователь {} убрал лайк с фильма {}. Осталось лайков: {}",
                 userId, filmId, film.getLikesCount());
+
+        eventService.saveEvent(userId, filmId, EventType.LIKE, Operation.REMOVE);
+
         return film;
     }
 

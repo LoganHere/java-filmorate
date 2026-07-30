@@ -6,9 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.FriendshipStatus;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,11 +18,14 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
     private final UserStorage userStorage;
+    private final EventService eventService;
     private final FilmService filmService;
 
     @Autowired
-    public UserService(UserStorage userStorage, FilmService filmService) {
+    public UserService(UserStorage userStorage, EventService eventService,
+                       FilmService filmService) {
         this.userStorage = userStorage;
+        this.eventService = eventService;
         this.filmService = filmService;
     }
 
@@ -80,6 +81,9 @@ public class UserService {
 
         userStorage.addFriend(userId, friendId, FriendshipStatus.CONFIRMED);
         log.info("Пользователь {} добавил в друзья пользователя {}", userId, friendId);
+
+        eventService.saveEvent(userId, friendId, EventType.FRIEND, Operation.ADD);
+
         return getUserById(userId);
     }
 
@@ -91,6 +95,9 @@ public class UserService {
 
         userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей пользователя {}", userId, friendId);
+
+        eventService.saveEvent(userId, friendId, EventType.FRIEND, Operation.REMOVE);
+
         return getUserById(userId);
     }
 
@@ -169,4 +176,5 @@ public class UserService {
         log.info("Проверка существования записи в таблице film_likes для пользователя с ID {}", userId);
         return userStorage.isExistsLikedFilms(userId);
     }
+
 }

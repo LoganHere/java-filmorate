@@ -8,6 +8,8 @@ import ru.yandex.practicum.filmorate.dal.ReviewStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.model.EventType;
+import ru.yandex.practicum.filmorate.model.Operation;
 import ru.yandex.practicum.filmorate.model.Review;
 
 import java.util.List;
@@ -19,17 +21,22 @@ public class ReviewService {
     private final ReviewStorage reviewStorage;
     private final UserStorage userStorage;
     private final FilmStorage filmStorage;
+    private final EventService eventService;
 
     @Autowired
-    public ReviewService(ReviewStorage reviewStorage, UserStorage userStorage, FilmStorage filmStorage) {
+    public ReviewService(ReviewStorage reviewStorage, UserStorage userStorage,
+                         FilmStorage filmStorage, EventService eventService) {
         this.reviewStorage = reviewStorage;
         this.userStorage = userStorage;
         this.filmStorage = filmStorage;
+        this.eventService = eventService;
     }
 
     public Review addReview(Review review) {
         validateReview(review);
-        return reviewStorage.addReview(review);
+        Review savedReview = reviewStorage.addReview(review);
+        eventService.saveEvent(savedReview.getUserId(), savedReview.getReviewId(), EventType.REVIEW, Operation.ADD);
+        return savedReview;
     }
 
     public Review updateReview(Review review) {
@@ -37,12 +44,15 @@ public class ReviewService {
             throw new ValidationException("ID отзыва не может быть пустым");
         }
         getReviewById(review.getReviewId());
-        return reviewStorage.updateReview(review);
+        Review updatedReview = reviewStorage.updateReview(review);
+        eventService.saveEvent(updatedReview.getUserId(), updatedReview.getReviewId(), EventType.REVIEW, Operation.UPDATE);
+        return updatedReview;
     }
 
     public void deleteReview(Long reviewId) {
         Review review = getReviewById(reviewId);
         reviewStorage.deleteReview(review.getReviewId());
+        eventService.saveEvent(review.getUserId(), review.getReviewId(), EventType.REVIEW, Operation.REMOVE);
     }
 
     public Review getReviewById(Long reviewId) {
