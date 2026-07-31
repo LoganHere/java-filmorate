@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
-import ru.yandex.practicum.filmorate.exception.DuplicateLikeException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -75,26 +74,16 @@ public class FilmService {
     }
 
     public Film addLike(Long filmId, Long userId) {
-        log.debug("Начало операции добавления лайка: фильм={}, пользователь={}", filmId, userId);
-
         if (!userStorage.containsUser(userId)) {
-            log.warn("Пользователь с id {} не найден", userId);
             throw new NotFoundException("Пользователь с id " + userId + " не найден");
         }
 
-        if (filmStorage.existsLike(filmId, userId)) {
-            log.warn("Пользователь {} уже ставил лайк фильму {}", userId, filmId);
-             throw new DuplicateLikeException("Пользователь уже поставил лайк этому фильму");
+        if (!filmStorage.existsLike(filmId, userId)) {
+            filmStorage.addLike(filmId, userId);
         }
 
-        filmStorage.addLike(filmId, userId);
         Film film = getFilmById(filmId);
-
-        log.info("Пользователь {} поставил лайк фильму {}. Всего лайков: {}",
-                userId, filmId, film.getLikesCount());
-
         eventService.saveEvent(userId, filmId, EventType.LIKE, Operation.ADD);
-
         return film;
     }
 
