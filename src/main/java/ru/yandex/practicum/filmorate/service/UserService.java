@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -20,13 +21,15 @@ public class UserService {
     private final UserStorage userStorage;
     private final EventService eventService;
     private final FilmService filmService;
+    private final FilmStorage filmStorage;
 
     @Autowired
     public UserService(UserStorage userStorage, EventService eventService,
-                       FilmService filmService) {
+                       FilmService filmService, FilmStorage filmStorage) {
         this.userStorage = userStorage;
         this.eventService = eventService;
         this.filmService = filmService;
+        this.filmStorage = filmStorage;
     }
 
     public List<User> getAllUsers() {
@@ -59,7 +62,6 @@ public class UserService {
             log.warn("Попытка удалить несуществующего пользователя с id: {}", id);
             throw new NotFoundException("Пользователь с id " + id + " не найден");
         }
-        userStorage.deleteAllFriendsByUserId(id);
         userStorage.deleteUser(id);
     }
 
@@ -144,6 +146,7 @@ public class UserService {
 
     public List<Film> getFilmsRecommendations(Long userId) {
         log.info("Начинается поиск пользователей для составления рекомендации.");
+
         if (!isExistsLikedFilms(userId)) {
             log.info("Пользователь с ID {} ещё не ставил like ни одному фильму", userId);
             return Collections.emptyList();
@@ -154,21 +157,20 @@ public class UserService {
             log.info("Не нашлось ни одного пользователя с пересечением по понравившимся фильмам.");
             return Collections.emptyList();
         }
-        log.info("ID пользователей для составление рекомендации {}", otherUserIds);
+        log.info("ID пользователей для составления рекомендации: {}", otherUserIds);
 
         List<Film> filmsLikedByUser = filmService.getLikedFilmsByUser(userId);
-        List<Film> recommendedFilms = new ArrayList<>();
+        Set<Long> likedFilmIds = filmsLikedByUser.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
 
-        for (Long otherUserId : otherUserIds) {
-            List<Film> filmsLikedByOtherUser = filmService.getLikedFilmsByUser(otherUserId);
-            recommendedFilms = filmsLikedByOtherUser.stream()
-                    .filter(film -> !filmsLikedByUser.contains(film))
-                    .collect(Collectors.toList());
+        List<Film> filmsLikedByOthers = filmStorage.getLikedFilmsByUsers(otherUserIds);
 
-            if (!recommendedFilms.isEmpty()) {
-                break;
-            }
-        }
+        List<Film> recommendedFilms = filmsLikedByOthers.stream()
+                .filter(film -> !likedFilmIds.contains(film.getId()))
+                .collect(Collectors.toList());
+
+        log.info("Найдено {} рекомендаций для пользователя {}", recommendedFilms.size(), userId);
         return recommendedFilms;
     }
 

@@ -318,6 +318,25 @@ public class JdbcFilmStorage implements FilmStorage {
         return films;
     }
 
+    @Override
+    public List<Film> getLikedFilmsByUsers(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        String placeholders = userIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(", "));
+
+        String sql = "SELECT DISTINCT f.* FROM films f " +
+                "JOIN film_likes fl ON f.id = fl.film_id " +
+                "WHERE fl.user_id IN (" + placeholders + ")";
+
+        List<Film> films = jdbcTemplate.query(sql, filmMapper, userIds.toArray());
+        loadFilmDetails(films);
+        return films;
+    }
+
     public List<Film> getCommonFilms(Long userId, Long friendId) {
         String sql = """
                 SELECT f.*, COUNT(fl.user_id) AS likes_count
