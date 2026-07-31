@@ -12,7 +12,10 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Repository("jdbcUserStorage")
@@ -133,6 +136,31 @@ public class JdbcUserStorage implements UserStorage {
     public void deleteAllFriendsByUserId(Long userId) {
         String sql = "DELETE FROM friendships WHERE user_id = ? OR friend_id = ?";
         jdbcTemplate.update(sql, userId, userId);
+    }
+
+    public List<Long> getUserIdsWithMostLikedFilmsMatches(Long userId) {
+        String sql = """
+                SELECT fl2.user_id
+                FROM film_likes fl
+                JOIN film_likes fl2 ON fl.film_id = fl2.film_id
+                WHERE fl.user_id = ? AND fl2.user_id != ?
+                GROUP BY fl2.user_id
+                ORDER BY Count(fl2.user_id) DESC
+                LIMIT 5;
+                """;
+        return jdbcTemplate.queryForList(sql, Long.class, userId, userId);
+    }
+
+    @Override
+    public boolean isExistsLikedFilms(Long userId) {
+        String sql = """
+                SELECT COUNT(*)
+                FROM film_likes
+                WHERE user_id = ?;
+                """;
+        long numberRows = jdbcTemplate.queryForObject(sql, long.class, userId);
+        log.info("numberRows = {}", numberRows);
+        return numberRows != 0;
     }
 
     private void loadUserFriends(List<User> users) {

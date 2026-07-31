@@ -5,7 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.List;
@@ -15,10 +18,12 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
+    private final EventService eventService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, EventService eventService) {
         this.userService = userService;
+        this.eventService = eventService;
     }
 
     @GetMapping
@@ -94,4 +99,22 @@ public class UserController {
                 commonFriends.size(), id, otherId);
         return commonFriends;
     }
+
+    @GetMapping("/{id}/feed")
+    public List<Event> getEventsByUserId(@PathVariable Long id) {
+        log.info("Запрос на получение событий у пользователя {}", id);
+        userService.getUserById(id);
+        List<Event> events = eventService.getFeed(id);
+        log.debug("Найдено {} событий у пользователя {}", events.size(), id);
+        return events;
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public List<Film> getFilmsRecommendations(@PathVariable Long id) {
+        log.info("Запрос на получение рекомендации по фильмам для пользователя с ID {}", id);
+        List<Film> recommendedFilms = userService.getFilmsRecommendations(id);
+        log.debug("Найдено {} рекомендованных фильмов для пользователя с ID {}", recommendedFilms.size(), id);
+        return recommendedFilms;
+    }
+
 }

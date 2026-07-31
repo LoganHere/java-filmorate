@@ -3,7 +3,7 @@
 ## Схема базы данных
 
 
-![Схема базы данных Filmorate](bd_diagram-1.png)
+![Схема базы данных Filmorate](diagram.png)
 
 ---
 
@@ -56,6 +56,41 @@
 * `status` (VARCHAR) — Статус дружбы (`PENDING` — неподтвержденная, `CONFIRMED` — подтвержденная).
 * *(Составной первичный ключ: `user_id` + `friend_id`)*.
 
+### 8. `directors` (Режиссёры)
+Справочник режиссёров фильмов.
+* `id` (INT, PK) — Уникальный идентификатор режиссёра.
+* `name` (VARCHAR) — Полное имя режиссёра (обязательно, макс. 25 символов).
+
+### 9. `film_directors` (Связь фильмов и режиссёров)
+Промежуточная таблица для связи "Многие ко многим" между фильмами и режиссёрами.
+* `film_id` (BIGINT, FK) — ID фильма.
+* `director_id` (INT, FK) — ID режиссёра.
+* *(Составной первичный ключ: `film_id` + `director_id`)*.
+
+### 10. `events` (События активности)
+Хранит события пользователей (лайки, отзывы, добавление/удаление друзей) для ленты новостей.
+* `event_id` (BIGINT, PK) — Уникальный идентификатор события.
+* `timestamp` (BIGINT) — Время события в миллисекундах.
+* `user_id` (BIGINT, FK) — ID пользователя, совершившего действие.
+* `event_type` (VARCHAR) — Тип события: LIKE, REVIEW, FRIEND.
+* `operation` (VARCHAR) — Тип операции: ADD, UPDATE, REMOVE.
+* `entity_id` (BIGINT) — ID сущности, с которой связано событие (фильм, отзыв или пользователь).
+
+### 11. `reviews` (Отзывы на фильмы)
+Таблица для хранения пользовательских отзывов о фильмах.
+* `review_id` (BIGINT, PK) — Уникальный идентификатор отзыва.
+* `content` (VARCHAR) — Текст отзыва (обязательно, макс. 1000 символов).
+* `is_positive` (BOOLEAN) — Оценка отзыва: true — положительный, false — отрицательный.
+* `user_id` (BIGINT, FK) — ID автора отзыва.
+* `film_id` (BIGINT, FK) — ID фильма, на который оставлен отзыв.
+* `useful` (INT) — Рейтинг полезности, вычисляемый как сумма лайков и дизлайков (по умолчанию 0).
+
+### 12. `review_likes` (Лайки/дизлайки на отзывы)
+Таблица для реакций пользователей на отзывы (оценка полезности).
+* `review_id` (BIGINT, FK) — ID отзыва.
+* `user_id` (BIGINT, FK) — ID пользователя, поставившего реакцию.
+* `is_like` (BOOLEAN) — Тип реакции: true — лайк (увеличивает рейтинг), false — дизлайк (уменьшает).
+* *(Составной первичный ключ: `review_id` + `user_id`)*.
 ---
 
 ## Базовые SQL-запросы для бизнес-логики
@@ -92,4 +127,17 @@ LEFT JOIN film_likes l ON f.id = l.film_id
 GROUP BY f.id, f.name
 ORDER BY likes_count DESC
 LIMIT 10;
+```
+### 5. Найти общие фильмы для двух пользователей
+```sql
+SELECT f.*, COUNT(fl.user_id) AS likes_count
+FROM films f
+LEFT JOIN film_likes fl ON f.id = fl.film_id
+WHERE f.id IN (
+SELECT film_id FROM film_likes WHERE user_id = 1
+INTERSECT
+SELECT film_id FROM film_likes WHERE user_id = 2
+)
+GROUP BY f.id
+ORDER BY likes_count DESC;
 ```

@@ -19,7 +19,7 @@ public interface FilmStorage {
 
     boolean containsFilm(Long id);
 
-    List<Film> getPopularFilms(int count);
+    List<Film> getPopularFilms(Integer count, Integer genreId, Integer year);
 
     void addLike(Long filmId, Long userId);
 
@@ -28,4 +28,16 @@ public interface FilmStorage {
     boolean existsLike(Long filmId, Long userId);
 
     Map<Long, List<Long>> getLikesForFilms(List<Long> filmIds);
+
+    List<Film> getLikedFilmsByUser(Long userId);
+
+    List<Film> searchFilms(String query, String by);
+
+    List<Film> getAllDirectorFilmsSortedByLikes(int directorId);
+
+    List<Film> getAllDirectorFilmsSortedByYear(int directorId);
+
+    List<Film> getCommonFilms(Long userId, Long friendId);
+
+    List<Film> getLikedFilmsByUsers(List<Long> userIds);
 }

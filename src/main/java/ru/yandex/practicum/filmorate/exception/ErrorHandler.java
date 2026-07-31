@@ -43,8 +43,15 @@ public class ErrorHandler {
         return Map.of("error", e.getMessage());
     }
 
+    @ExceptionHandler(DuplicateLikeException.class)
+    @ResponseStatus(HttpStatus.NO_CONTENT) // заменить на нужный код
+    public Map<String, String> handleNotFoundException(DuplicateLikeException e) {
+        log.warn("Попытка дублирования данных: {}", e.getMessage());
+        return Map.of("error", e.getMessage());
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
         log.warn("Ошибка чтения JSON: {}", e.getMessage());
         Throwable cause = e.getCause();

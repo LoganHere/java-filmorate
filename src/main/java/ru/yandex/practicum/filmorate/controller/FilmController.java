@@ -4,7 +4,16 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -67,8 +76,40 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<Film> getPopularFilms(@RequestParam(required = false) Integer count,
+                                      @RequestParam(required = false) Integer genreId,
+                                      @RequestParam(required = false) Integer year) {
         log.debug("Запрос на получение {} популярных фильмов", count);
-        return filmService.getPopularFilms(count);
+        return filmService.getPopularFilms(count, genreId, year);
+    }
+
+    @GetMapping("/search")
+    public List<Film> searchFilms(@RequestParam(required = false) String query,
+                                  @RequestParam(defaultValue = "title") String by) {
+        log.info("Запрос на поиск фильмов: query={}, by={}", query, by);
+        return filmService.searchFilms(query, by);
+    }
+
+    @GetMapping("/director/{directorId}")
+    public List<Film> getAllDirectorFilms(
+            @PathVariable int directorId,
+            @RequestParam(defaultValue = "year") String sortBy) {
+        log.debug("Запрос на получение всех фильмов режиссёра с ID {} с сортировкой по {}",
+                directorId, sortBy.toLowerCase());
+        return switch (sortBy.toLowerCase()) {
+            case "likes" -> filmService.getAllDirectorFilmsSortedByLikes(directorId);
+            case "year" -> filmService.getAllDirectorFilmsSortedByYear(directorId);
+            default -> throw new IllegalArgumentException(
+                    "Недопустимое значение параметра sortBy: " + sortBy +
+                            ". Допустимые значения: 'year', 'likes'");
+        };
+    }
+
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(@RequestParam Long userId,
+                                     @RequestParam Long friendId) {
+        log.debug("Запрос на получение общих фильмов для пользователей с ID {} и {}",
+                userId, friendId);
+        return filmService.getCommonFilms(userId, friendId);
     }
 }

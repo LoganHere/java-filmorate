@@ -30,4 +30,8 @@ public interface UserStorage {
     boolean existsFriend(Long userId, Long friendId);
 
     void deleteAllFriendsByUserId(Long userId);
+
+    List<Long> getUserIdsWithMostLikedFilmsMatches(Long userId);
+
+    boolean isExistsLikedFilms(Long userId);
 }
