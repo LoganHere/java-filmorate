@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.dal.FilmStorage;
 import ru.yandex.practicum.filmorate.dal.UserStorage;
+import ru.yandex.practicum.filmorate.exception.DuplicateLikeException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -83,7 +84,7 @@ public class FilmService {
 
         if (filmStorage.existsLike(filmId, userId)) {
             log.warn("Пользователь {} уже ставил лайк фильму {}", userId, filmId);
-            return getFilmById(filmId);
+             throw new DuplicateLikeException("Пользователь уже поставил лайк этому фильму");
         }
 
         filmStorage.addLike(filmId, userId);
